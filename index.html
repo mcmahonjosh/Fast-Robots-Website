@@ -1,16 +1,179 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Fast Robots – Your Name</title>
-</head>
-<body>
-  <h1>Fast Robots</h1>
-  <p>Your Name – ECE 4960</p>
+  <meta charset="UTF-8">
+  <title>ECE 4160 – Fast Robots</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <h2>Labs</h2>
-  <ul>
-    <li><a href="lab1.html">Lab 1 – BLE Debugging</a></li>
-  </ul>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #111;
+      background: #fff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 60px;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    /* .icons a {
+      margin-left: 16px;
+      text-decoration: none;
+      color: #111;
+      font-size: 18px;
+    } */
+
+    .icons a {
+        display: flex;
+        align-items: center;
+        font-size: 18px;
+        text-decoration: none;
+        color: #111;
+    }
+
+    .icons {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .icon {
+        width: 24px;
+        height: 24px;
+    }
+    .profile {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .profile img {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 20px;
+    }
+
+    .profile h2 {
+      font-size: 26px;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .description {
+      max-width: 700px;
+      margin: 30px auto 60px;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #444;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    thead th {
+      text-align: left;
+      font-size: 14px;
+      font-weight: 600;
+      color: #666;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    tbody td {
+      padding: 16px 0;
+      border-bottom: 1px solid #eee;
+      font-size: 16px;
+    }
+
+    tbody tr:hover {
+      background-color: #fafafa;
+    }
+
+    .lab-number {
+      width: 60px;
+      color: #666;
+    }
+
+    .lab-title a {
+      text-decoration: none;
+      color: #111;
+      font-weight: 500;
+    }
+
+    .lab-title a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <header>
+      <h1>ECE 4160: Fast Robots</h1>
+      <div class="icons">
+        <!-- <a href="#" title="Theme">🌙</a> -->
+        <a href="https://github.com/mcmahonjosh" title="GitHub">
+            <img src="github.png" class="icon">
+        </a>
+        <a href="https://www.linkedin.com/in/joshuahmcmahon/" title="LinkedIn" class="icon">in</a>
+      </div>
+    </header>
+
+    <section class="profile">
+      <img src="profile.png" alt="Profile Photo">
+      <h2>Joshua McMahon</h2>
+    </section>
+
+    <div class="description">
+        Hi, I'm a senior in Computer Science pursuing a minor in Electrical & Computer Engineering. Welcome to my Fast Robots page where I will be documenting all of my work in ECE 4160.
+    </div>
+
+    <!-- Labs -->
+    <table>
+      <thead>
+        <tr>
+          <th class="lab-number">lab</th>
+          <th>title</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="lab-number">1</td>
+          <td class="lab-title">
+            <a href="#">Artemis and Bluetooth</a>
+          </td>
+        </tr>
+        <tr>
+          <td class="lab-number">2</td>
+          <td class="lab-title">
+            <a href="#"></a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+  </div>
 </body>
 </html>
