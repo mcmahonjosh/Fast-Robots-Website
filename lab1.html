@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lab 1 – Artemis and Bluetooth</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #111;
+      background: #fff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    a {
+      color: #111;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    header {
+      margin-bottom: 50px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #555;
+      font-size: 16px;
+    }
+
+    .back-link {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+
+    section {
+      margin-bottom: 60px;
+    }
+
+    section h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 6px;
+    }
+
+    section p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .image-block {
+      margin: 24px 0;
+      text-align: center;
+    }
+
+    .image-block img {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .image-caption {
+      font-size: 14px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 14px;
+      margin: 20px 0;
+    }
+
+    code {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+    }
+
+    .note {
+      background: #fafafa;
+      border-left: 4px solid #ddd;
+      padding: 14px 16px;
+      color: #444;
+      font-size: 15px;
+      margin: 20px 0;
+    }
+
+    video {
+        max-width: 100%;
+        border-radius: 6px;
+        border: 1px solid #eee;
+    }
+
+    .video-container {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+    }
+
+    .video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 6px;
+    border: 1px solid #eee;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="index.html" class="back-link">← Back to labs</a>
+
+    <header>
+      <h1>Lab 1: Artemis and Bluetooth</h1>
+      <p>ECE 4160 – Fast Robots</p>
+    </header>
+
+    
+    <!-- ================= PRELAB ================= -->
+    <h1>Lab1A</h1>
+
+    <p>
+        The goal of this lab was to establish familiarity with the Arduino IDE as well as the 
+        Artemis board. 
+      </p>
+    <section>
+      <h2>Prelab</h2>
+      <p>
+        I started with installing the Arduino IDE and setting up the Artemis
+        board, connecting it via USB to my computer.
+      </p>
+      <h3>Blink</h3>
+        <p>
+            First I test Blink found in File->Examples->01.Basics. We can observe the blue 
+            light is toggled on an off at a regular interval.
+        </p>
+        <div class="image-block">
+        <div class="video-container">
+            <iframe
+            src="https://www.youtube.com/embed/EUP7HjGp_gw"
+            title="Lab 1 Blink Demo"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+            </iframe>
+        </div>
+        <div class="image-caption">
+            Blink demo on the Artemis board
+        </div>
+        </div>
+      <h3>Serial</h3>
+        <p>
+            Next I test Example4_Serial found in File -> Examples -> Apollo3. The program allows the user 
+            to send a message to the board which it then echos back, ensuring the serial communication is working properly.
+        </p>
+        <div class="image-block">
+        <div class="video-container">
+            <iframe
+            src="https://www.youtube.com/embed/DWVGIrp9CeM"
+            title="Lab 1 Serial Demo"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+            </iframe>
+        </div>
+        <div class="image-caption">
+            Serial demo on the Artemis board
+        </div>
+        </div>
+      <h3>Temperature</h3>
+        <p>
+                Here I test the temperature sensor using the file Example2_analogRead from File -> Examples -> Apollo3. I place my thumb 
+                on the sensor during the test and we can see the temperature slowly rise due to the heat from my finger.
+        </p>
+        <div class="image-block">
+        <div class="video-container">
+            <iframe
+            src="https://www.youtube.com/embed/6NWkmqGCWyQ"
+            title="Lab 1 Temperature Demo"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+            </iframe>
+        </div>
+        <div class="image-caption">
+            Temperature demo on the Artemis board
+        </div>
+        </div>
+      <h3>Microphone</h3>
+        <p>
+                Finally I test the microphone using Example1_MicrophoneOutput found under File -> Examples -> PDM. 
+                Testing the microphone I say "Test" repeatedly to view how the output changes with sound input.
+        </p>
+        <div class="image-block">
+        <div class="video-container">
+            <iframe
+            src="https://www.youtube.com/embed/zkNj9Vwf5f8"
+            title="Lab 1 Microphone Demo"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+            </iframe>
+        </div>
+        <div class="image-caption">
+            Microphone demo on the Artemis board
+        </div>
+        </div>
+    </section>
+
+    <h1>Lab1B</h1>
+    <p>
+        Before starting this part of the Lab I had to ensure I had the proper version of python and pip installed.
+        I then created a virtual environment and read through the codebase to understand the functions that I would have to use. 
+      </p>
+    <!-- ================= CONFIGURATION ================= -->
+    <section>
+      <h2>Configuration</h2>
+      <p>
+        Next in order to set up the Artemis/Bluetooth connection, I installed the
+        ArduinoBLE library burned the example code to my board. I then updated the config file 
+        with my MAC adress after printing it to the serial monitor.
+      </p>
+
+    </section>
+
+    <!-- ================= LAB TASKS ================= -->
+    <section>
+      <h2>Lab Tasks</h2>
+      
+      <h3>Task 1: ECHO</h3>
+        <p>
+            Here I send the ECHO command from the computer to the Artemis board along with a string.
+            The ECHO command causes the Artemis board to send back the exact same string. This allows 
+            us to verify that communication is properly working in both directions.
+        </p>
+        <p>
+            Arduino Code:
+        </p>
+        <pre><code>
+    case ECHO:
+
+            char char_arr[MAX_MSG_SIZE];
+
+            // Extract the next value from the command string as a character array
+            success = robot_cmd.get_next_value(char_arr);
+            if (!success)
+                return;
+
+            tx_estring_value.clear();
+            tx_estring_value.append("Robot says -> ");
+            tx_estring_value.append(char_arr);
+            tx_estring_value.append("!!!");
+            tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+            
+            break;
+      </code></pre>
+      <p>
+            Python Code:
+      </p>
+      <pre><code>
+        #1
+        ble.send_command(CMD.ECHO, "Artemis")
+        s = ble.receive_string(ble.uuid['RX_STRING'])
+        print(s)
+      </code></pre>
+      <p>
+            With output:
+      </p>
+      <pre><code>
+        Robot says -> Artemis!!!
+      </code></pre>
+      <h3>Task 2: SEND_THREE_FLOATS</h3>
+        <p>
+        Here I send over 3 floats to the Artemis board which then extracts and prints the 3 values.
+        </p>
+        <p>
+            Arduino Code:
+        </p>
+      <pre><code>
+        case SEND_THREE_FLOATS:
+            /*
+             * Your code goes here.
+             */
+            float float1, float2, float3;
+
+            success = robot_cmd.get_next_value(float1);
+            if (!success)
+                return;
+
+            success = robot_cmd.get_next_value(float2);
+            if (!success)
+                return;
+
+            success = robot_cmd.get_next_value(float3);
+            if (!success)
+                return;
+
+            Serial.print("Three Floats: ");
+            Serial.print(float1);
+            Serial.print(", ");
+            Serial.print(float2);
+            Serial.print(", ");
+            Serial.println(float3);
+
+
+            break;
+      </code></pre>
+      <p>
+        Python Code:
+      </p>
+      <pre><code>
+        #2
+        ble.send_command(CMD.SEND_THREE_FLOATS, "2.0|-15.5|4.7")
+      </code></pre>
+      <p>
+        Output:
+      </p>
+      <pre><code>
+        Three Floats: 2.00, -15.50, 4.70
+      </code></pre>
+      <h3>Task 3: GET_TIME_MILLIS</h3>
+      <p>
+        In task 3 I send a command to request the current time in milliseconds from the Artemis board.
+        It then returns this time as a string. This was a new command so I had to update it in the Artemis code 
+        as well as the cmd_types file in python.
+      </p>
+        <p>
+            Python Code:
+        </p>
+      <pre><code>
+        #3
+        ble.send_command(CMD.GET_TIME_MILLIS, "")
+      </code></pre>
+      <p>
+            Arduino Code:
+      </p>
+      <pre><code>
+        case GET_TIME_MILLIS: 
+
+            int time;
+            time = (int)millis();
+
+            tx_estring_value.clear();
+            tx_estring_value.append("T:");
+            tx_estring_value.append(time);
+            tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+            Serial.print("Sent back: ");
+            Serial.println(tx_estring_value.c_str());
+
+            break;
+      </code></pre>
+      <p>
+            Output:
+      </p>
+      <pre><code>
+        T: 36073
+      </code></pre>
+
+      <h3>Task 4: Recieve Time Back</h3>
+        <p>
+            In this task I receive the time string sent back from the Artemis board in task 3 and print it to the console using a callback function.
+        </p>
+       <p>
+            Python Code:
+        </p>
+      <pre><code>
+        #4
+        ble.send_command(CMD.GET_TIME_MILLIS, "")
+        s = ble.receive_string(ble.uuid['RX_STRING'])
+        print(s)
+      </code></pre>
+      <p>
+            Output: 
+      </p>
+      <pre><code>
+        T: 44305.000
+      </code></pre>
+
+      <h3>Task 5: Send Multiple Time Values</h3>
+         <p>
+            Now instead of sending a single time value, I send over multiple for a period of about 3 seconds. This then allowed me 
+            to count the number of messages send over this time to calculate the effective baud rate. I edited the GET_TIME_MILLIS function 
+            to encorperate this functionality. The variable time_length can be adjusted to change the duration of the test.
+        </p>
+       <p>
+            Arduino Code:
+        </p>
+      <pre><code>
+        case GET_TIME_MILLIS:
+            unsigned long t;
+            unsigned long t_start;
+            unsigned long last;
+            last = 0;
+            t = millis();
+            t_start = t;
+
+            int num_messages;
+            num_messages = 0;
+
+            for (int i = 0; i < time_length; i++) {
+
+
+                t = millis();                
+                tx_estring_value.clear();
+                tx_estring_value.append(t);   
+                tx_characteristic_string.writeValue(
+                tx_estring_value.c_str()
+                );
+                num_messages++;
+            }
+
+            
+            Serial.println(num_messages); 
+
+            break;
+      </code></pre>
+      <p>
+            Pyhton Code:
+      </p>
+      <pre><code>
+        def string_notification_handler(uuid, byte_array):
+        msg = ble.bytearray_to_string(byte_array)
+
+        if msg.startswith("T:"):
+            t = int(msg[2:])
+            print(f"Time (ms): {t}")
+
+        ble.start_notify(
+            ble.uuid['RX_STRING'],
+            string_notification_handler)
+
+
+        ble.send_command(CMD.GET_TIME_MILLIS, "")
+      </code></pre>
+      <p>
+            Partial Output (Since it is too long):
+      </p>
+      <pre><code>
+        Time (ms): 28305
+        Time (ms): 28305
+        Time (ms): 28305
+        Time (ms): 28305
+        Time (ms): 28362
+        Time (ms): 28428
+        Time (ms): 28428
+        Time (ms): 28486
+        Time (ms): 28486
+        Time (ms): 28486
+        Time (ms): 28541
+      </code></pre>
+      <p>
+            Partial Output (Since it is too long):
+      </p>
+      <p>
+            The last time value sent was 31248. 31248 - 28305 = 2943. 87 messages were sent in this time so we can calculate the rate that messages were sent.
+            (87 messages) / (2.943 seconds of time elapsed)= 29.5616717635 messages per second.
+      </p>
+      <h3>Task6</h3>
+        <p>
+            Now instead of sending all the time values immedietly over, I switch to using a batch method where I first record all the values and store them in an array on the Artemis board.
+            After this I loop through the array and send all the values over to the computer. A callback function then extracts all the values. I had to make a gloabl array to store the time and 
+            separated the functionality of recording and sending in two differnt commands. The GET_TIME_MILLIS handled recording while a new SEND_TIME_DATA command handled sending the data. 
+        </p>
+
+       <p>
+            Arduino Code:
+        </p>
+      <pre><code>
+          case GET_TIME_MILLIS:
+            
+            unsigned long t;
+            unsigned long t_start;
+            unsigned long last;
+            
+
+            last = 0;
+            t = millis();
+            
+        
+            t_start = t;
+
+            int num_messages;
+            num_messages = 0;
+
+
+
+            for (int i = 0; i < time_length; i++) {
+
+
+                t = millis();
+                time_arr[i] = (int)t;
+      
+                
+                num_messages++;
+            }
+
+            Serial.println(num_messages); 
+
+         
+
+            Serial.println("Sent Time");
+        
+
+            break;
+        
+      </code></pre>
+      <pre><code>
+        case SEND_TIME_DATA:
+
+            for (int i = 0; i < time_length; i++) {
+
+                int time;
+                time = time_arr[i];
+                tx_estring_value.clear();
+                tx_estring_value.append(time);   
+                tx_characteristic_string.writeValue(tx_estring_value.c_str());
+                //delay(100);                  
+
+                        
+                //Serial.println("Running SEND_TIME_DATA");
+
+            }
+
+            
+
+            break;
+      </code></pre>
+      <p>
+        Python Code: 
+      </p>
+      <pre><code>
+        nums = []
+
+
+        def collect_array_nums(uuid, byte_array):
+            msg = ble.bytearray_to_string(byte_array)
+            nums.append(msg)
+            #print(f"Time (ms): {msg}")
+
+        ble.start_notify(
+            ble.uuid['RX_STRING'],
+            collect_array_nums)
+
+        ble.send_command(CMD.GET_TIME_MILLIS, "")
+
+        ble.send_command(CMD.SEND_TIME_DATA, "")
+
+        print(nums)
+        print(len(nums))
+      </code></pre>
+      <p>
+            Output:
+      </p>
+      <pre><code>
+        ['36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36073', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36074', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075', '36075']
+150
+      </code></pre>
+
+      <h3>Task 7: Time and Temp</h3>
+        <p>
+            In this task I create an additional array to store temperature readings along with the time readings. Again I used the batch method and first record the values for both temperature and time.
+            After this I loop through both arrays in a new command called GET_TEMP_READINGS and send the values to the comptuer. Then the notification handler parses the strings and populates the data
+            into two lists. 
+        </p>
+       <p>
+            Python Code:
+        </p>
+      <pre><code>
+        time_reading = []
+        temp_reading = []
+
+        def collect_array_temps(uuid, byte_array):
+            msg = ble.bytearray_to_string(byte_array)
+            substring_time = msg.partition(':')[0]
+            substring_temp = msg.partition(':')[2]
+            time_reading.append(substring_time)
+            temp_reading.append(substring_temp)
+            #print(f"Time (ms): {msg}")
+
+        ble.start_notify(
+            ble.uuid['RX_STRING'],
+            collect_array_temps)
+
+        ble.send_command(CMD.GET_TIME_MILLIS, "")
+
+        ble.send_command(CMD.GET_TEMP_READINGS, "")
+
+        print(time_reading)
+        print(len(time_reading))
+
+      </code></pre>
+      <p>
+            Arduino Code:
+      </p>
+      <pre><code>
+        case GET_TIME_MILLIS:
+            
+            unsigned long t;
+            unsigned long t_start;
+            unsigned long last;
+        
+            last = 0;
+            t = millis();
+            
+        
+            t_start = t;
+
+            int num_messages;
+            num_messages = 0;
+
+
+
+            for (int i = 0; i < time_length; i++) {
+
+
+                t = millis();
+                time_arr[i] = (int)t;
+                temp_arr[i] = getTempDegF();       
+                
+                num_messages++;
+            }
+
+            Serial.println(num_messages); 
+
+     
+            Serial.println("Sent Time");
+   
+
+            
+            
+
+            break;
+      </code></pre>
+      <pre><code>
+        case GET_TEMP_READINGS:
+
+            //t = millis();
+            int a;
+            a = millis();
+
+            for (int i = 0; i < time_length; i++) {
+
+                int time;
+                int temp;
+                time = time_arr[i];
+                temp = temp_arr[i];
+
+                tx_estring_value.clear();
+                tx_estring_value.append(time);   
+                tx_estring_value.append(":");   
+                tx_estring_value.append(temp);   
+                tx_characteristic_string.writeValue(tx_estring_value.c_str());
+                //delay(100);
+                //Serial.println("Running GET_TEMP_READINGS");
+
+            }
+            int b;
+            b = millis();
+            Serial.println("This");
+            Serial.println(a);
+            Serial.println(b);
+
+            
+
+            break;
+      </code></pre>
+      <p>
+            Output (from python cell):
+      </p>
+      <pre><code>
+        ['31965', '31966', '31966', '31966', '31967', '31967', '31967', '31967', '31968', '31968', '31968', '31968', '31968', '31969', '31969', '31969', '31969', '31970', '31970', '31970', '31970', '31971', '31976', '31976', '31976', '31976', '31977', '31977', '31977', '31977', '31978', '31978', '31978', '31978', '31978', '31979', '31979', '31979', '31979', '31980', '31980', '31980', '31980', '31981', '31986', '31986', '31986', '31986', '31987', '31987', '31987', '31987', '31988', '31988', '31988', '31988', '31988', '31989', '31989', '31989', '31989', '31990', '31990', '31990', '31990', '31991', '31996', '31996', '31996', '31996', '31997', '31997', '31997', '31997', '31998', '31998', '31998', '31998', '31998', '31999', '31999', '31999', '31999', '32000', '32000', '32000', '32000', '32001', '32006', '32006', '32006', '32006', '32007', '32007', '32007', '32007', '32008', '32008', '32008', '32008', '32009', '32009', '32009', '32009', '32009', '32010', '32010', '32010', '32010', '32011', '32016', '32016', '32016', '32016', '32017', '32017', '32017', '32017', '32018', '32018', '32018', '32018', '32019', '32019', '32019', '32019', '32019', '32020', '32020', '32020', '32020', '32021', '32026', '32026', '32026', '32026', '32027', '32027', '32027', '32027', '32028', '32028', '32028', '32028', '32029', '32029', '32029', '32029', '32029', '32030']
+        150
+      </code></pre>
+
+      <h3>Task8</h3>
+
+      <p>
+            In task 8 I discuss the differences between the two methods of data collection and transmission (immedietly sending vs batching).
+      </p>
+
+      <section>
+        <h2>Data Throughput Comparison</h2>
+
+        <h3>Method 1: Send Data Immediately</h3>
+        <p>
+            In this method, data is transmitted as soon as it is measured on the Artemis board.
+        </p>
+
+        <pre><code>
+        31248 - 28305 = 2943 ms = 2.943 s
+
+        87 messages / 2.943 s
+        = 29.56 messages per second
+        </code></pre>
+
+        <h3>Method 2: Store Data First, Then Send</h3>
+        <p>
+            In this method, data is first recorded on the Artemis board and transmitted afterward.
+        </p>
+
+        <h4>Recording Time</h4>
+        <pre><code>
+        32030 - 31965 = 65 ms
+        65 ms = 0.065 s
+
+        150 messages / 0.065 s
+        = 2307.69 messages per second
+        </code></pre>
+
+        <h4>Transmission Time</h4>
+        <pre><code>
+        40191 - 36364 = 3827 ms = 3.827 s
+
+        150 messages / 3.827 s
+        = 39.20 messages per second
+        </code></pre>
+
+        <h3>Discussion</h3>
+        <p>
+            The first method sends data immediately after it is recorded, allowing the host computer
+            to receive measurements with minimal latency. This approach is useful for real-time
+            applications, such as robot control, where timely data is critical.
+        </p>
+
+        <p>
+            The second method prioritizes recording speed by batching data on the Artemis board
+            before transmission. This allows data to be recorded extremely quickly (over 2000
+            samples per second), but requires waiting until all data has been collected before
+            it can be accessed. Transmission speed was also slightly faster due to the separation
+            of recording and sending.
+        </p>
+
+        <p>
+            If accurate, high-frequency sampling is required and real-time access is not necessary,
+            the second method is preferable. The performance difference becomes most significant
+            when a large number of samples are collected.
+        </p>
+
+        <h3>Memory Constraints</h3>
+        <p>
+            Each sample consists of a timestamp and a temperature value:
+        </p>
+
+        <ul>
+            <li>Timestamp (<code>uint32_t</code>): 4 bytes</li>
+            <li>Temperature (<code>float</code>): 4 bytes</li>
+        </ul>
+
+        <p>
+            This results in 8 bytes per sample. Given that the Artemis board has 384 kB of RAM:
+        </p>
+
+        <pre><code>
+        384,000 bytes / 8 bytes per sample = 48,000 samples
+        </code></pre>
+
+        <p>
+            Therefore, approximately <strong>48,000 samples</strong> can be stored before running
+            out of memory.
+        </p>
+        </section>
+
+
+    </section>
+
+
+  </div>
+</body>
+</html>
