@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lab 2 – IMU</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #111;
+      background: #fff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    a {
+      color: #111;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    header {
+      margin-bottom: 50px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #555;
+      font-size: 16px;
+    }
+
+    .back-link {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+
+    section {
+      margin-bottom: 60px;
+    }
+
+    section h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 6px;
+    }
+
+    section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 26px;
+      margin-bottom: 10px;
+    }
+
+    section p, li {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    ul {
+      margin-top: 0;
+    }
+
+    .image-block {
+      margin: 24px 0;
+      text-align: center;
+    }
+
+    .image-block img {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .image-caption {
+      font-size: 14px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 14px;
+      margin: 20px 0;
+    }
+
+    code {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+    }
+
+    .note {
+      background: #fafafa;
+      border-left: 4px solid #ddd;
+      padding: 14px 16px;
+      color: #444;
+      font-size: 15px;
+      margin: 20px 0;
+    }
+
+    video {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+    }
+
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="index.html" class="back-link">← Back to labs</a>
+
+    <header>
+      <h1>Lab 2: IMU</h1>
+      <p>ECE 4160 – Fast Robots</p>
+    </header>
+
+    <!-- ================= OBJECTIVE ================= -->
+    <section>
+      <h2>Objective</h2>
+      <p> The purpose of this lab was to start setting up sensors with our artemis board, starting with the IMU. The second goal was to be able to record a stunt
+        with our car.
+      </p>
+
+    </section>
+
+
+    <!-- ================= LAB TASKS ================= -->
+    <section>
+      <h2>Lab Tasks</h2>
+
+      <!-- ================= SETUP IMU ================= -->
+      <h3>Set up the IMU</h3>
+      <p>
+        To set up the IMU I used one of the qwicc cable to connect the IMU to the Artemis. I then downloaded the library add 
+        learned how to control the sensor with the example code.
+    </p>
+    <p>
+        LSB of the IMU’s I²C address based on the AD0/ADR pin state (choosing between 0x68 and 0x69). My IMU used address 0x69 
+        so I set AD0_VAL to 1.
+
+        Depending on how the sensor is oriented, the accelerometer will read different values. For the gyroscope it reads very small values unless
+        the sensor is moving.
+      </p>
+
+      <h3>Visual indication the board is running</h3>
+      <p>
+        I first added a simple LED blink so in setup() so that I could tell that the board was running.
+      </p>
+      <pre><code>
+        
+      </code></pre>
+
+
+      <!-- ================= ACCELEROMETER ================= -->
+      <h3>Accelerometer: pitch and roll from accel</h3>
+      <p>
+        Code to calculate pitch and roll:
+      </p>
+      <pre><code>
+        float pitch = atan2((&myICM)->accX(), (&myICM)->accZ())  * (180.0 / M_PI);
+        float roll = atan2((&myICM)->accY(), (&myICM)->accZ()) * (180.0 / M_PI);
+      </code></pre>
+
+      <h3>Output at {-90, 0, 90} degrees</h3>
+      <div class="image-block">
+        <img src="images/lab2_accel_angles_90deg.png" alt="Accel angles at -90 0 90">
+        <div class="image-caption">Accelerometer-derived pitch/roll at {-90, 0, 90}° orientations.</div>
+      </div>
+
+      <h3>Accelerometer accuracy + two-point calibration</h3>
+      <p>
+        The equations I used for the calibration were: offset = (m1 + m2) / 2, scale = (t2 - t1) / (m2 - m1), where m1 and m2 are the measured values at two known orientations t1 and t2.
+      </p>
+      <div class="image-block">
+        <img src="images/two-point1.png" alt="Accel angles at -90 0 90">
+        <div class="image-caption">Accelerometer-derived pitch/roll at {-90, 0, 90}° orientations.</div>
+      </div>
+       <div class="image-block">
+        <img src="images/two-point2.png" alt="Accel angles at -90 0 90">
+        <div class="image-caption">Accelerometer-derived pitch/roll at {-90, 0, 90}° orientations.</div>
+      </div>
+
+
+
+      <h3>Noise analysis (FFT / frequency spectrum)</h3>
+      <p>
+        <!-- TODO: how you recorded stationary/noisy data + FFT method. -->
+        I first ploted the acc data on a frequency spectrum and recorded once with adding noise and once without. During recording I tapped and then vibrated the table to add nosie.
+      </p>
+
+      <div class="image-block">
+        <img src="images/acc_before_noise.png" alt="FFT of accelerometer w/o noise">
+        <div class="image-caption">Fourier transform (magnitude spectrum) of accelerometer data.</div>
+      </div>
+
+           <div class="image-block">
+        <img src="images/acc_after_noise.png" alt="FFT of accelerometer with noise">
+        <div class="image-caption">Fourier transform (magnitude spectrum) of accelerometer data.</div>
+      </div>
+
+
+      <h3>Cutoff frequency choice + low-pass filter</h3>
+      <p>
+        The data mainly fell in between 0 and 5 hz so I chose 7 hz as the cutoff frequency for my low-pass filter. Below you can see a 
+        comparison of the signal before and after using the low-pass filter.
+      </p>
+
+      <pre><code>
+        
+fc = 7
+
+alpha = (2*np.pi*fc) / (2*np.pi*fc + fs)
+
+filtered = np.zeros_like(ax)
+filtered[0] = ax[0]
+
+
+for i in range(1, len(ax)):
+    filtered[i] = alpha*ax[i] + (1-alpha)*filtered[i-1]
+
+
+plt.figure()
+plt.plot(time, ax, label="Original")
+plt.plot(time, filtered, label="Filtered")
+plt.xlim(65, 76)
+plt.xlabel("Time (s)")
+plt.ylabel("Acceleration X")
+plt.title("Original vs Low-Pass Filtered Signal")
+plt.legend()
+plt.grid(True)
+plt.show()
+      </code></pre>
+
+      <div class="image-block">
+        <img src="images/low-pass-acc.png" alt="Accel raw vs filtered">
+        <div class="image-caption">Raw vs low-pass filtered accelerometer pitch/roll.</div>
+      </div>
+
+      <!-- ================= GYROSCOPE ================= -->
+      <h3>Gyroscope: pitch, roll, yaw from gyro integration</h3>
+      <p>
+        I then encorperated the gyro data and calculated pitch and roll as following:
+      </p>
+      <pre><code>
+        float dt = (now_us - last_us) / 1000000.0f;
+
+        float gx = sensor->gyrX(); 
+        float gy = sensor->gyrY();
+        float gz = sensor->gyrZ();
+
+        roll_gyro  += gx * dt;
+        pitch_gyro += gy * dt;
+        yaw_gyro   += gz * dt;
+      </code></pre>
+
+      <h3>Compare gyro vs accelerometer vs filtered accel</h3>
+      <p>
+        I then plotted the difference in what the gyro and accelerometer measured for pitch and roll. 
+        The gyro data is more noisy and drifts over time while the accelerometer data is more stable.
+      </p>
+
+      <div class="image-block">
+        <img src="images/gryo_pitch.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Pitch gyro-integrated angles vs accel angles vs filtered accel.</div>
+      </div>
+
+      <div class="image-block">
+        <img src="images/gyro_roll.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Roll gyro-integrated angles vs accel angles vs filtered accel.</div>
+      </div>
+
+      <div class="image-block">
+        <img src="images/gyro_yaw.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Yaw gyro-integrated angles vs accel angles vs filtered accel.</div>
+      </div>
+
+      <h3>Sampling frequency effects</h3>
+      <p>
+        <!-- TODO: discuss what happens when you change sampling rate; aliasing; integration accuracy. -->
+        [Discuss effect of different sampling frequencies on accuracy and drift.]
+      </p>
+
+      <h3>Complementary filter</h3>
+      <p>
+        <!-- TODO: show formula, alpha choice, and demonstrate stable + accurate results; working range. -->
+        [Describe complementary filter design. Include alpha and why you chose it.]
+      </p>
+      <pre><code>
+/* TODO: paste complementary filter snippet */
+roll_cf  = alpha * (roll_cf  + gx * dt) + (1-alpha) * roll_acc;
+pitch_cf = alpha * (pitch_cf + gy * dt) + (1-alpha) * pitch_acc;
+      </code></pre>
+
+      <div class="image-block">
+        <img src="images/lab2_complementary_filter.png" alt="Complementary filter result">
+        <div class="image-caption">Complementary filter: stable, accurate pitch/roll without drift.</div>
+      </div>
+
+      <!-- ================= SAMPLE DATA / SPEED ================= -->
+
+      <h3>Sampling speed measurements</h3>
+      <p>
+        <!-- TODO: measured sample period / Hz; compare to IMU data rate. -->
+        Increasing the sample frequency helped to reduce the drift
+      </p>
+      <div class="image-block">
+        <img src="images/less_drift.png" alt="Complementary filter result">
+        <div class="image-caption">Complementary filter: stable, accurate pitch/roll without drift.</div>
+      </div>
+
+    <h3>Using a complementary filter helped to improve this problem a lot further</h3>
+      <pre><code>
+        static unsigned long last_us = 0;
+
+        unsigned long now_us = micros();
+        if (last_us == 0) last_us = now_us;
+
+        float dt = (now_us - last_us) / 1000000.0f;
+        last_us = now_us;
+
+        float ax = sensor->accX();
+        float ay = sensor->accY();
+        float az = sensor->accZ();
+
+        float gx = sensor->gyrX();  
+        float gy = sensor->gyrY();
+        float gz = sensor->gyrZ();
+
+        float roll_acc  = atan2(ay, az) * 180.0f / M_PI;
+        float pitch_acc = atan2(-ax, sqrt(ay*ay + az*az)) * 180.0f / M_PI;
+
+        roll_gyro  += gx * dt;
+        pitch_gyro += gy * dt;
+        yaw_gyro   += gz * dt;
+
+        if (!cf_initialized) {
+        roll_cf = roll_acc;
+        pitch_cf = pitch_acc;
+        cf_initialized = true;
+        }
+
+        // complementary filter
+        roll_cf  = ALPHA * (roll_cf  + gx * dt) + (1.0f - ALPHA) * roll_acc;
+        pitch_cf = ALPHA * (pitch_cf + gy * dt) + (1.0f - ALPHA) * pitch_acc;
+      </code></pre>
+
+        <div class="image-block">
+        <img src="images/less_drift.png" alt="Complementary filter result">
+        <div class="image-caption">Complementary filter: stable, accurate pitch/roll without drift.</div>
+      </div>
+
+      <h3>Store time-stamped IMU data in arrays (using flags)</h3>
+      <p>
+        <!-- TODO: justify data structure choice + types (float, uint32_t, etc.) -->
+        [Discuss storage design: one big array vs separate arrays; chosen types; why.]
+      </p>
+
+      <h3>Memory discussion</h3>
+      <p>
+        <!-- TODO: compute bytes/sample, max samples in RAM, seconds at your sampling rate. -->
+        [Compute memory use. How many seconds of data fit?]
+      </p>
+      <pre><code>
+/* TODO: fill in your memory math */
+Bytes per sample = [     ]
+Available RAM (bytes) ≈ [     ]
+Max samples ≈ [     ]
+Seconds at [     ] Hz ≈ [     ]
+      </code></pre>
+
+      <h3>Demonstrate ≥5 seconds of IMU data sent over Bluetooth</h3>
+      <p>
+        <!-- TODO: explain your BLE message format (CSV, tags), and show Python parsing + proof of length. -->
+        [Describe your Bluetooth data send. Include snippet of Arduino send loop + Python receive/parser.]
+      </p>
+
+      <pre><code>
+/* TODO: Arduino snippet: format you send over BLE (CSV line per sample recommended) */
+      </code></pre>
+
+      <pre><code>
+/* TODO: Python snippet: notification handler + parsing + plotting */
+      </code></pre>
+
+      <div class="image-block">
+        <img src="images/lab2_5s_ble_plot.png" alt="5 seconds data plot">
+        <div class="image-caption">Plot showing at least 5 seconds of IMU data received over BLE.</div>
+      </div>
+
+      <!-- ================= RECORD A STUNT ================= -->
+      <h3>Record a stunt!</h3>
+      <p>
+        <!-- TODO: describe baseline driving observations + what stunt you recorded + what you expected in IMU. -->
+        [Describe 5 minutes of driving tests and what you observed. Then describe the stunt you recorded.]
+      </p>
+
+      <div class="image-block">
+        <div class="video-container">
+          <!-- TODO: replace with your YouTube embed -->
+          <iframe
+            src="https://www.youtube.com/embed/VIDEO_ID_HERE"
+            title="Lab 2 Stunt Video"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+        <div class="image-caption">Stunt recording + brief discussion of IMU signature.</div>
+      </div>
+
+      <h3>Results discussion</h3>
+      <p>
+        <!-- TODO: briefly interpret what the IMU plots show during the stunt (peaks, turns, vibrations, drift). -->
+        [Discuss the IMU data during the stunt and how it matches your observations.]
+      </p>
+
+      <div class="image-block">
+        <img src="images/lab2_stunt_data_plot.png" alt="Stunt IMU data plot">
+        <div class="image-caption">IMU plot during stunt (identify key moments).</div>
+      </div>
+
+      <!-- ================= CONCLUSION ================= -->
+      <h3>Conclusion</h3>
+      <p>
+        <!-- TODO: 4–8 sentences: what worked, what you learned, and what you’ll reuse in later labs. -->
+        [Write your conclusion here.]
+      </p>
+
+      <div class="note">
+        <strong>Code:</strong> Add only the most relevant snippets (consider GitHub Gists). Do not paste entire files.
+      </div>
+    </section>
+
+  </div>
+</body>
+</html>
