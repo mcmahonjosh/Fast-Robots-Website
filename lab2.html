@@ -188,9 +188,19 @@
       <p>
         I first added a simple LED blink so in setup() so that I could tell that the board was running.
       </p>
-      <pre><code>
-        
-      </code></pre>
+      
+      <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/a49zM0inxpM"
+            title="Lab 2 Blinking Blue Light"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
 
 
       <!-- ================= ACCELEROMETER ================= -->
@@ -203,12 +213,26 @@
         float roll = atan2((&myICM)->accY(), (&myICM)->accZ()) * (180.0 / M_PI);
       </code></pre>
 
-      <h3>Output at {-90, 0, 90} degrees</h3>
+      <h3>Outputs at {-90, 0, 90} degrees</h3>
       <div class="image-block">
-        <img src="images/lab2_accel_angles_90deg.png" alt="Accel angles at -90 0 90">
-        <div class="image-caption">Accelerometer-derived pitch/roll at {-90, 0, 90}° orientations.</div>
+        <img src="images/IMG_1222.JPG" alt="Accel angles at -90 0 90">
       </div>
 
+      <div class="image-block">
+        <img src="images/IMG_1223.JPG" alt="Accel angles at -90 0 90">
+      </div>
+
+      <div class="image-block">
+        <img src="images/IMG_1224.JPG" alt="Accel angles at -90 0 90">
+      </div>
+
+      <div class="image-block">
+        <img src="images/IMG_1225.JPG" alt="Accel angles at -90 0 90">
+      </div>
+
+       <p>
+        Here we can see that only one of the values is acurate at one time between the pitch and the roll.
+      </p>
       <h3>Accelerometer accuracy + two-point calibration</h3>
       <p>
         The equations I used for the calibration were: offset = (m1 + m2) / 2, scale = (t2 - t1) / (m2 - m1), where m1 and m2 are the measured values at two known orientations t1 and t2.
@@ -319,38 +343,42 @@ plt.show()
       <h3>Sampling frequency effects</h3>
       <p>
         <!-- TODO: discuss what happens when you change sampling rate; aliasing; integration accuracy. -->
-        [Discuss effect of different sampling frequencies on accuracy and drift.]
+        Next I decreased the sampling frequency by a factor of 10. This seemed to cause the drift to be even 
+        more noticable for the same amount of time.
       </p>
+
+      <div class="image-block">
+        <img src="images/gpslow.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Pitch gyro-integrated angles vs accel angles vs filtered accel.</div>
+      </div>
+
+      <div class="image-block">
+        <img src="images/grslow.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Roll gyro-integrated angles vs accel angles vs filtered accel.</div>
+      </div>
+
+      <div class="image-block">
+        <img src="images/gyslow.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Yaw gyro-integrated angles vs accel angles vs filtered accel.</div>
+      </div>
 
       <h3>Complementary filter</h3>
       <p>
         <!-- TODO: show formula, alpha choice, and demonstrate stable + accurate results; working range. -->
-        [Describe complementary filter design. Include alpha and why you chose it.]
+        Finally I implemented a complementary filter to combine the gyro and accelerometer data. 
+        The complementary filter uses a weighted average of the gyro and accelerometer angles, where the gyro provides short-term stability and the accelerometer provides long-term accuracy. 
+      </p>
+      <p>
+        The formula is: roll_cf = alpha * (roll_cf + gx * dt) + (1-alpha) * roll_acc; pitch_cf = alpha * (pitch_cf + gy * dt) + (1-alpha) * pitch_acc; where alpha is a tuning parameter between 0 and 1 that determines the balance between gyro and accel.
+      </p>
+      <p>
+        This filter was able to significantly reduce the drift over time in our measured data, while some still remained.
       </p>
       <pre><code>
-/* TODO: paste complementary filter snippet */
 roll_cf  = alpha * (roll_cf  + gx * dt) + (1-alpha) * roll_acc;
 pitch_cf = alpha * (pitch_cf + gy * dt) + (1-alpha) * pitch_acc;
       </code></pre>
 
-      <div class="image-block">
-        <img src="images/lab2_complementary_filter.png" alt="Complementary filter result">
-        <div class="image-caption">Complementary filter: stable, accurate pitch/roll without drift.</div>
-      </div>
-
-      <!-- ================= SAMPLE DATA / SPEED ================= -->
-
-      <h3>Sampling speed measurements</h3>
-      <p>
-        <!-- TODO: measured sample period / Hz; compare to IMU data rate. -->
-        Increasing the sample frequency helped to reduce the drift
-      </p>
-      <div class="image-block">
-        <img src="images/less_drift.png" alt="Complementary filter result">
-        <div class="image-caption">Complementary filter: stable, accurate pitch/roll without drift.</div>
-      </div>
-
-    <h3>Using a complementary filter helped to improve this problem a lot further</h3>
       <pre><code>
         static unsigned long last_us = 0;
 
@@ -386,91 +414,297 @@ pitch_cf = alpha * (pitch_cf + gy * dt) + (1-alpha) * pitch_acc;
         pitch_cf = ALPHA * (pitch_cf + gy * dt) + (1.0f - ALPHA) * pitch_acc;
       </code></pre>
 
-        <div class="image-block">
-        <img src="images/less_drift.png" alt="Complementary filter result">
-        <div class="image-caption">Complementary filter: stable, accurate pitch/roll without drift.</div>
+       <div class="image-block">
+        <img src="images/cfp.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Pitch gyro-integrated angles vs accel angles vs filtered accel.</div>
       </div>
 
-      <h3>Store time-stamped IMU data in arrays (using flags)</h3>
+      <div class="image-block">
+        <img src="images/cfr.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Roll gyro-integrated angles vs accel angles vs filtered accel.</div>
+      </div>
+
+      <div class="image-block">
+        <img src="images/cfy.png" alt="Gyro vs accel comparison">
+        <div class="image-caption">Comparison plot: Yaw gyro-integrated angles vs accel angles vs filtered accel.</div>
+      </div>
+
+      <!-- ================= SAMPLE DATA / SPEED ================= -->
+
+      <h3>Sampling speed measurements</h3>
       <p>
-        <!-- TODO: justify data structure choice + types (float, uint32_t, etc.) -->
-        [Discuss storage design: one big array vs separate arrays; chosen types; why.]
+        I then tested the speed at which the artemis can record values. I removed all serial print statements and stored data in arrays.
+        In the main loop I added a loopCount variable to count the amount of times the loop runs. I then in the if statement checked if the loopCount was below N 
+        and also if the IMU data was ready. In the loop I update all of the arrays at their next respective index and increment the index. This allows me set a large value for N 
+        and then after N interations I can print out how high of an index the arrays reach and how high loopCount reached. The different between N and the 
+        variable to track the index (I used "count") tells us how many times the loop ran but wasn't able to enter the if statement due to the IMU data 
+        not being ready. 
       </p>
+      <pre><code>
+        void loop()
+{
+  loopCount++;
+
+  if (loopCount < N && myICM.dataReady())
+  {
+    myICM.getAGMT();         // The values are only updated when you call 'getAGMT'
+                             //    printRawAGMT( myICM.agmt );     // Uncomment this to see the raw values, taken directly from the agmt structure
+    printScaledAGMT(&myICM); // This function takes into account the scale settings from when the measurement was made to calculate the values with units
+    //delay(30);
+
+    t_us[count] = micros();
+
+    ax[count] = myICM.accX();
+    ay[count] = myICM.accY();
+    az[count] = myICM.accZ();
+
+    gx[count] = myICM.gyrX();
+    gy[count] = myICM.gyrY();
+    gz[count] = myICM.gyrZ();
+
+    count++;
+    sampleCount++;
+  }
+}
+      </code></pre>
+      <p>
+        With N set to 10,000 the count variable was able to reach 9,997 showing that it only dropped 2 packages.
+        I also kept track of the time in microseconds and stored it in an array. At the first index 0 the time 
+        was 10,074,255 and at the last index 9,997 it was 28,892,176. This means 18,817,921 microseconds, or 18.817921
+        seconds passed during the time we were able to record 9,997 IMU samples. This is a sampling rate of about 531.5
+        samples per second.
+        </p>
+        <p>
+            Next I set up the ability to record and send over IMU values over Bluetooth. 
+            I used the commands from lab 1 and used GET_TIME_MILLIS to start recording data as well as 
+            SEND_TIME_DATA to stop recording data and send it over to my computer. I made more sense to store all the 
+            different data in different arrays to make it easier to sort out later when it reached the computer. I sent over
+            the data as floats to preserve the precision that is recorded by the IMU. Finally I recorded my board capturing values for a few seconds.
+        </p>
+         <pre><code>
+bool keep_recording = false;
+bool keep_sending = false;
+float time_arr_imu[N];
+float pitch_acc_a[N], roll_acc_a[N];
+float pitch_gyro_a[N], roll_gyro_a[N], yaw_gyro_a[N];
+
+</code></pre>
+    <pre><code>
+
+if (keep_recording) {
+
+
+    static unsigned long last_us = 0;
+
+    unsigned long now_us = micros();
+    if (last_us == 0) last_us = now_us;
+
+    float dt = (now_us - last_us) / 1000000.0f;
+    last_us = now_us;
+
+    float ax = sensor->accX();
+    float ay = sensor->accY();
+    float az = sensor->accZ();
+
+    float gx = sensor->gyrX();  
+    float gy = sensor->gyrY();
+    float gz = sensor->gyrZ();
+
+    float roll_acc  = atan2(ay, az) * 180.0f / M_PI;
+    float pitch_acc = atan2(-ax, sqrt(ay*ay + az*az)) * 180.0f / M_PI;
+
+    roll_gyro  += gx * dt;
+    pitch_gyro += gy * dt;
+    yaw_gyro   += gz * dt;
+
+    if (!cf_initialized) {
+      roll_cf = roll_acc;
+      pitch_cf = pitch_acc;
+      cf_initialized = true;
+    }
+
+    roll_cf  = ALPHA * (roll_cf  + gx * dt) + (1.0f - ALPHA) * roll_acc;
+    pitch_cf = ALPHA * (pitch_cf + gy * dt) + (1.0f - ALPHA) * pitch_acc;
+
+    Serial.print(now_us);
+    Serial.print(",");
+    Serial.print(pitch_acc);
+    Serial.print(",");
+    Serial.print(roll_acc);
+    Serial.print(",");
+    Serial.print(pitch_gyro);
+    Serial.print(",");
+    Serial.print(roll_gyro);
+    Serial.print(",");
+    Serial.print(pitch_cf);
+    Serial.print(",");
+    Serial.println(roll_cf);
+
+    time_arr_imu[rec_count] = now_us;
+    pitch_acc_a[rec_count] = pitch_acc;
+    roll_acc_a[rec_count] = roll_acc;
+    pitch_gyro_a[rec_count] = pitch_gyro;
+    roll_gyro_a[rec_count] = roll_gyro;
+    yaw_gyro_a[rec_count] = yaw_gyro;
+    
+
+    rec_count += 1;
+
+    if (rec_count >= N) {
+      keep_recording = false;
+      keep_sending = true;
+    }
+
+    
+
+  }
+
+
+  if (keep_sending) {
+
+
+        if (old_rec_count >= rec_count) {
+          SERIAL_PORT.print(old_rec_count);
+          SERIAL_PORT.print(rec_count);
+   
+        }
+
+        for (int j = old_rec_count; j < rec_count; j++) {
+
+              SERIAL_PORT.print(j);
+  
+
+               tx_estring_value.clear();
+
+              // Format: j,time,pitchAcc,rollAcc,pitchGyro,rollGyro,yawGyro\n
+              tx_estring_value.append(j);
+              tx_estring_value.append(",");
+              tx_estring_value.append(time_arr_imu[j]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(pitch_acc_a[j]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(roll_acc_a[j]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(pitch_gyro_a[j]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(roll_gyro_a[j]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(yaw_gyro_a[j]);
+
+              tx_characteristic_string.writeValue(tx_estring_value.c_str());
+              delay(100); // can likely be much smaller than 100
+
+          send_count += 1;
+        }
+
+        if (send_count >= rec_count) {
+          keep_sending = false;
+        }
+
+        old_rec_count = rec_count + 1;
+
+  }
+      </code></pre>
+
+       <p>
+        My loop would constantly call the function above while the commands from my computer would toggle the keep_sending 
+        and keep_recording variables on an off controlling when I would record or send data.
+       </p>
+       
+            
+
+
+    <h3></h3>
+      
 
       <h3>Memory discussion</h3>
       <p>
-        <!-- TODO: compute bytes/sample, max samples in RAM, seconds at your sampling rate. -->
-        [Compute memory use. How many seconds of data fit?]
+        I was able to allocate 10,000 indecies to each of my arrays. When I tried to increase the oder of magnitude farther than this,
+        I would get memory errors at compile time. As I calculated before, this corresponds to about 18 seconds of recording before I would
+        need to clear my data. I then set up this python code to recieve the data.
       </p>
       <pre><code>
-/* TODO: fill in your memory math */
-Bytes per sample = [     ]
-Available RAM (bytes) ≈ [     ]
-Max samples ≈ [     ]
-Seconds at [     ] Hz ≈ [     ]
+        time_arr_imu = []
+        pitch_acc_a = []
+        roll_acc_a = []
+        pitch_gyro_a = []
+        roll_gyro_a = []
+        yaw_gyro_a = []
+
+def collect_array_nums(sender, byte_array):
+
+    line = ble.bytearray_to_string(byte_array).strip()
+
+  
+    parts = line.split(",")
+    if len(parts) != 7:
+        return
+
+    j, t, pa, ra, pg, rg, yg = parts
+
+    time_arr_imu.append(t)
+    pitch_acc_a.append(pa)
+    roll_acc_a.append(ra)
+    pitch_gyro_a.append(pg)
+    roll_gyro_a.append(rg)
+    yaw_gyro_a.append(yg)
+
+    ble.start_notify(
+    ble.uuid['RX_STRING'],
+    collect_array_nums)
+
+    print(len(time_arr_imu))
+    print(len(pitch_acc_a))
+    print(len(roll_acc_a))
+    print(len(pitch_gyro_a))
+    print(len(roll_gyro_a))
+    print(len(yaw_gyro_a))
+    print(time_arr_imu)
+    print(pitch_acc_a)
+    print(roll_acc_a)
+    print(pitch_gyro_a)
+    print(roll_gyro_a)
+    print(yaw_gyro_a)
       </code></pre>
 
-      <h3>Demonstrate ≥5 seconds of IMU data sent over Bluetooth</h3>
       <p>
-        <!-- TODO: explain your BLE message format (CSV, tags), and show Python parsing + proof of length. -->
-        [Describe your Bluetooth data send. Include snippet of Arduino send loop + Python receive/parser.]
+        This was my recorded data for a few seconds.
+      </p>
+      <pre><code>
+    301
+    301
+    301
+    301
+    301
+    301
+    ['116994432.000', '117004576.000', '117013728.000', '117021960.000', '117032264.000', '117039368.000', '117046456.000', '117056640.000', '117062792.000', '117071928.000', '117083280.000', '117093592.000', '117104752.000', '117112928.000', '117123144.000', '117132288.000', '117138440.000', '117147640.000', '117155792.000', '117164048.000', '117174360.000', '117181472.000', '117188648.000', '117195816.000', '117203008.000', '117210240.000', '117217416.000', '117224584.000', '117231768.000', '117242000.000', '117251248.000', '117259472.000', '117267648.000', '117279048.000', '117286352.000', '117293664.000', '117300832.000', '117311752.000', '117321040.000', '117329264.000', '117337536.000', '117347832.000', '117357072.000', '117363312.000', '117372592.000', '117380832.000', '117391136.000', '117398336.000', '117405496.000', '117412704.000', '117419936.000', '117430176.000', '117439424.000', '117447648.000', '117455904.000', '117467360.000', '117474664.000', '117481840.000', '117488832.000', '117495840.000', '117502832.000', '117509832.000', '117520752.000', '117526984.000', '117536208.000', '117542448.000', '117551728.000', '117559960.000', '117570264.000', '117579504.000', '117590640.000', '117598872.000', '117609176.000', '117618416.000', '117624648.000', '117637856.000', '117647904.000', '117654840.000', '117661840.000', '117668840.000', '117675840.000', '117682832.000', '117689840.000', '117696832.000', '117703832.000', '117710832.000', '117717832.000', '117724832.000', '117734904.000', '117743880.000', '117751856.000', '117761896.000', '117768832.000', '117775840.000', '117782832.000', '117792904.000', '117801880.000', '117809856.000', '117817856.000', '117827904.000', '117836880.000', '117843128.000', '117852472.000', '117860760.000', '117869008.000', '117879312.000', '117886512.000', '117893688.000', '117900848.000', '117908032.000', '117915200.000', '117922368.000', '117929552.000', '117936720.000', '117943896.000', '117954984.000', '117964248.000', '117972472.000', '117980648.000', '117992048.000', '117999360.000', '118006664.000', '118013832.000', '118020832.000', '118027832.000', '118034832.000', '118045752.000', '118055040.000', '118063264.000', '118071536.000', '118081832.000', '118091072.000', '118097312.000', '118108464.000', '118116704.000', '118127000.000', '118136248.000', '118142480.000', '118151760.000', '118162072.000', '118170376.000', '118180728.000', '118189880.000', '118196128.000', '118207344.000', '118217656.000', '118226896.000', '118233136.000', '118242424.000', '118250656.000', '118260960.000', '118268160.000', '118275336.000', '118282496.000', '118289704.000', '118296936.000', '118311168.000', '118319488.000', '118329880.000', '118338880.000', '118345128.000', '118354472.000', '118362760.000', '118371008.000', '118381312.000', '118390552.000', '118396800.000', '118406072.000', '118414312.000', '118424616.000', '118431808.000', '118439000.000', '118446240.000', '118453416.000', '118460584.000', '118467768.000', '118478000.000', '118487248.000', '118495472.000', '118503648.000', '118515048.000', '118522352.000', '118529664.000', '118536832.000', '118543840.000', '118550832.000', '118557832.000', '118564832.000', '118571832.000', '118578832.000', '118585832.000', '118595904.000', '118604880.000', '118612856.000', '118620856.000', '118630896.000', '118637840.000', '118644840.000', '118651840.000', '118658840.000', '118665840.000', '118672832.000', '118679832.000', '118686832.000', '118693832.000', '118700832.000', '118710904.000', '118719880.000', '118727856.000', '118735856.000', '118745904.000', '118752840.000', '118759840.000', '118766840.000', '118773840.000', '118780832.000', '118787832.000', '118794832.000', '118805752.000', '118815040.000', '118823264.000', '118831536.000', '118841832.000', '118851072.000', '118857304.000', '118866592.000', '118874832.000', '118883088.000', '118891352.000', '118901656.000', '118910896.000', '118917136.000', '118926416.000', '118934648.000', '118946040.000', '118953352.000', '118960664.000', '118967832.000', '118977904.000', '118986880.000', '118997752.000', '119008056.000', '119017288.000', '119025536.000', '119033792.000', '119042056.000', '119052360.000', '119061592.000', '119067824.000', '119078984.000', '119087216.000', '119097520.000', '119104712.000', '119111888.000', '119120256.000', '119127560.000', '119134832.000', '119141832.000', '119151904.000', '119160880.000', '119168856.000', '119176864.000', '119186904.000', '119195880.000', '119202128.000', '119211472.000', '119219760.000', '119228008.000', '119238312.000', '119245512.000', '119252688.000', '119259856.000', '119267032.000', '119274200.000', '119281376.000', '119288552.000', '119295720.000', '119302896.000', '119310064.000', '119317240.000', '119328344.000', '119337584.000', '119345824.000', '119358320.000', '119365648.000', '119372832.000', '119379840.000', '119386840.000', '119393840.000', '119400832.000', '119407840.000', '119414832.000', '119421832.000', '119428832.000', '119435832.000', '119442832.000', '119449832.000', '119459904.000', '119468880.000', '119476856.000', '119484856.000']
+    ['-35.189', '-34.942', '-35.279', '-34.755', '-34.631', '-35.164', '-35.115', '-34.734', '-34.886', '-35.274', '-35.397', '-34.677', '-35.391', '-36.062', '-35.972', '-35.466', '-34.986', '-35.180', '-35.433', '-35.705', '-35.346', '-35.268', '-35.470', '-34.830', '-35.526', '-34.279', '-35.461', '-35.336', '-35.161', '-34.612', '-35.370', '-35.184', '-35.082', '-35.054', '-35.317', '-36.240', '-35.770', '-34.496', '-35.026', '-35.215', '-35.747', '-35.741', '-35.521', '-35.369', '-35.722', '-34.652', '-35.565', '-35.422', '-35.370', '-35.528', '-35.273', '-35.532', '-35.332', '-35.610', '-35.084', '-34.821', '-34.785', '-36.159', '-35.973', '-35.333', '-35.287', '-35.043', '-35.191', '-35.242', '-34.680', '-35.480', '-34.949', '-35.701', '-35.218', '-35.492', '-34.771', '-35.440', '-35.070', '-35.746', '-35.447', '-35.358', '-35.908', '-35.647', '-35.019', '-35.262', '-35.725', '-35.932', '-35.299', '-35.436', '-35.550', '-35.573', '-35.067', '-35.501', '-35.053', '-34.684', '-34.503', '-35.338', '-35.430', '-34.687', '-35.426', '-34.917', '-35.319', '-35.393', '-35.184', '-35.552', '-35.812', '-35.142', '-35.932', '-35.679', '-35.653', '-35.598', '-35.279', '-35.741', '-35.066', '-34.735', '-34.896', '-35.105', '-35.393', '-34.978', '-35.224', '-35.195', '-35.517', '-35.051', '-35.324', '-35.481', '-34.654', '-35.530', '-34.762', '-35.097', '-35.992', '-35.252', '-34.962', '-34.830', '-34.929', '-35.740', '-34.925', '-35.605', '-35.755', '-34.871', '-35.854', '-34.790', '-35.804', '-35.708', '-35.431', '-34.524', '-35.178', '-35.825', '-34.958', '-35.766', '-34.873', '-35.210', '-35.335', '-35.384', '-35.198', '-35.851', '-35.309', '-35.254', '-35.740', '-35.868', '-36.599', '-35.262', '-34.844', '-35.518', '-35.018', '-35.654', '-35.597', '-35.180', '-36.385', '-36.070', '-35.358', '-35.557', '-34.443', '-34.610', '-34.789', '-34.900', '-35.638', '-35.816', '-34.671', '-34.755', '-35.410', '-34.896', '-34.825', '-34.932', '-35.719', '-35.391', '-35.658', '-36.812', '-34.146', '-35.542', '-36.039', '-35.411', '-35.902', '-34.934', '-35.631', '-35.538', '-35.175', '-35.521', '-35.087', '-35.412', '-35.199', '-34.890', '-35.794', '-35.679', '-35.528', '-35.811', '-35.643', '-34.977', '-35.443', '-35.177', '-35.729', '-35.405', '-35.279', '-35.969', '-35.774', '-35.151', '-35.164', '-35.133', '-34.921', '-34.908', '-34.985', '-35.594', '-35.343', '-35.218', '-35.241', '-34.776', '-35.496', '-35.598', '-35.154', '-35.789', '-36.096', '-35.268', '-35.621', '-34.710', '-35.042', '-35.197', '-33.883', '-34.756', '-34.554', '-34.840', '-35.868', '-35.956', '-35.568', '-35.210', '-35.350', '-35.704', '-34.862', '-34.777', '-35.500', '-35.066', '-35.859', '-35.734', '-34.900', '-35.222', '-35.972', '-35.522', '-35.187', '-35.466', '-34.698', '-35.399', '-35.940', '-35.613', '-35.656', '-35.271', '-35.324', '-35.731', '-35.719', '-36.018', '-35.285', '-35.107', '-35.980', '-35.012', '-35.093', '-34.908', '-35.527', '-36.027', '-36.307', '-35.468', '-35.178', '-35.345', '-35.421', '-35.482', '-34.828', '-35.473', '-35.819', '-35.176', '-35.262', '-35.270', '-35.834', '-35.161', '-36.140', '-35.256', '-35.179', '-35.463', '-35.162', '-35.307', '-35.141', '-35.892', '-35.494', '-35.183', '-35.219', '-35.077', '-35.884', '-35.363', '-35.745', '-35.323', '-35.242']
+    ['162.467', '162.627', '162.364', '163.132', '162.373', '163.432', '162.582', '164.021', '163.227', '163.475', '162.633', '162.585', '162.559', '163.094', '163.283', '163.811', '163.582', '162.892', '163.391', '162.435', '162.172', '163.380', '162.838', '162.982', '163.514', '162.843', '163.577', '163.495', '163.634', '162.406', '162.758', '162.841', '163.284', '162.821', '162.637', '162.500', '163.038', '162.742', '163.530', '163.194', '163.084', '162.420', '163.264', '163.006', '162.533', '162.458', '162.787', '163.119', '163.466', '162.884', '163.237', '163.196', '162.460', '163.095', '163.290', '162.687', '162.410', '163.503', '164.466', '163.103', '163.270', '162.062', '162.897', '162.993', '163.458', '163.150', '162.747', '163.735', '164.179', '162.063', '162.689', '163.073', '161.871', '162.413', '164.285', '162.430', '163.453', '163.520', '163.353', '162.689', '163.091', '162.650', '162.724', '163.194', '162.218', '162.835', '163.036', '162.976', '163.144', '163.280', '163.149', '162.938', '163.348', '162.545', '162.904', '163.213', '164.234', '162.560', '162.387', '162.694', '163.297', '164.092', '162.848', '163.008', '162.325', '163.089', '162.894', '162.687', '162.300', '163.287', '163.770', '163.079', '162.639', '163.501', '163.211', '162.358', '162.618', '163.586', '163.153', '163.162', '162.721', '162.889', '162.129', '163.069', '164.006', '163.743', '163.384', '163.659', '163.407', '163.071', '163.217', '163.254', '163.582', '163.102', '163.307', '162.791', '163.280', '164.208', '163.148', '162.088', '162.965', '162.748', '162.538', '163.496', '162.897', '164.149', '163.719', '164.348', '163.214', '163.089', '162.579', '163.153', '162.711', '162.810', '163.736', '163.233', '163.231', '162.271', '163.374', '163.563', '162.378', '162.352', '162.894', '162.897', '162.736', '162.380', '163.122', '162.069', '162.785', '163.101', '162.533', '163.453', '164.140', '162.668', '162.787', '162.400', '162.889', '162.866', '163.660', '163.189', '162.863', '161.747', '163.106', '163.549', '163.437', '163.477', '163.196', '163.479', '163.810', '161.985', '162.889', '163.357', '163.866', '162.933', '162.958', '162.838', '162.928', '163.294', '162.685', '162.727', '163.157', '163.160', '163.565', '163.290', '162.216', '162.635', '162.150', '162.643', '163.030', '162.902', '163.411', '163.463', '162.621', '163.050', '162.422', '164.045', '162.567', '163.671', '163.341', '163.571', '163.076', '163.544', '162.296', '162.800', '162.369', '163.626', '162.892', '163.575', '163.138', '162.884', '162.965', '162.980', '163.238', '162.746', '163.612', '163.596', '163.033', '163.545', '162.832', '163.145', '163.705', '163.872', '162.819', '163.066', '163.187', '163.317', '162.417', '162.162', '162.098', '162.643', '162.704', '162.783', '162.498', '163.237', '162.892', '163.606', '163.509', '163.014', '162.907', '162.803', '162.967', '161.855', '163.759', '162.298', '163.095', '162.902', '162.411', '163.020', '162.950', '163.351', '162.515', '163.304', '163.992', '162.702', '162.664', '162.614', '163.651', '164.293', '163.023', '161.728', '162.917', '163.094', '163.260', '162.993', '162.825', '162.994', '163.228', '163.350', '163.320', '163.256', '163.081', '163.334', '163.411', '162.707', '162.248', '162.838', '163.149', '162.464', '162.838', '162.298', '163.254']
+    ['0.000', '-0.026', '-0.038', '-0.061', '-0.101', '-0.100', '-0.110', '-0.104', '-0.114', '-0.125', '-0.133', '-0.147', '-0.130', '-0.138', '-0.143', '-0.132', '-0.151', '-0.156', '-0.154', '-0.143', '-0.173', '-0.166', '-0.169', '-0.169', '-0.159', '-0.166', '-0.159', '-0.153', '-0.136', '-0.119', '-0.113', '-0.108', '-0.103', '-0.109', '-0.117', '-0.139', '-0.169', '-0.211', '-0.259', '-0.262', '-0.264', '-0.267', '-0.281', '-0.285', '-0.300', '-0.322', '-0.330', '-0.353', '-0.357', '-0.376', '-0.372', '-0.389', '-0.411', '-0.403', '-0.413', '-0.422', '-0.414', '-0.413', '-0.439', '-0.428', '-0.417', '-0.431', '-0.440', '-0.437', '-0.415', '-0.414', '-0.409', '-0.395', '-0.392', '-0.380', '-0.425', '-0.442', '-0.466', '-0.469', '-0.482', '-0.506', '-0.525', '-0.534', '-0.542', '-0.551', '-0.560', '-0.558', '-0.560', '-0.568', '-0.550', '-0.553', '-0.551', '-0.563', '-0.568', '-0.607', '-0.596', '-0.574', '-0.588', '-0.579', '-0.573', '-0.566', '-0.587', '-0.594', '-0.580', '-0.562', '-0.588', '-0.582', '-0.573', '-0.575', '-0.570', '-0.542', '-0.550', '-0.549', '-0.551', '-0.550', '-0.552', '-0.554', '-0.552', '-0.573', '-0.583', '-0.576', '-0.585', '-0.610', '-0.639', '-0.609', '-0.611', '-0.590', '-0.604', '-0.626', '-0.629', '-0.631', '-0.630', '-0.629', '-0.637', '-0.652', '-0.636', '-0.614', '-0.605', '-0.608', '-0.606', '-0.610', '-0.615', '-0.607', '-0.598', '-0.622', '-0.632', '-0.622', '-0.654', '-0.655', '-0.641', '-0.646', '-0.644', '-0.638', '-0.621', '-0.622', '-0.653', '-0.647', '-0.646', '-0.662', '-0.683', '-0.670', '-0.685', '-0.695', '-0.688', '-0.680', '-0.707', '-0.714', '-0.729', '-0.724', '-0.754', '-0.749', '-0.757', '-0.738', '-0.738', '-0.726', '-0.734', '-0.719', '-0.722', '-0.716', '-0.710', '-0.695', '-0.679', '-0.657', '-0.665', '-0.654', '-0.691', '-0.727', '-0.752', '-0.774', '-0.775', '-0.780', '-0.783', '-0.797', '-0.785', '-0.798', '-0.797', '-0.801', '-0.814', '-0.819', '-0.809', '-0.803', '-0.785', '-0.767', '-0.754', '-0.743', '-0.758', '-0.739', '-0.740', '-0.735', '-0.736', '-0.752', '-0.741', '-0.745', '-0.755', '-0.754', '-0.762', '-0.768', '-0.785', '-0.770', '-0.760', '-0.781', '-0.780', '-0.797', '-0.785', '-0.763', '-0.781', '-0.801', '-0.783', '-0.785', '-0.792', '-0.793', '-0.794', '-0.812', '-0.820', '-0.831', '-0.819', '-0.811', '-0.785', '-0.787', '-0.800', '-0.815', '-0.820', '-0.820', '-0.804', '-0.806', '-0.797', '-0.832', '-0.835', '-0.833', '-0.833', '-0.844', '-0.824', '-0.814', '-0.806', '-0.805', '-0.809', '-0.767', '-0.777', '-0.771', '-0.772', '-0.775', '-0.752', '-0.780', '-0.763', '-0.778', '-0.775', '-0.740', '-0.738', '-0.750', '-0.753', '-0.753', '-0.745', '-0.756', '-0.768', '-0.754', '-0.756', '-0.767', '-0.772', '-0.789', '-0.774', '-0.747', '-0.763', '-0.756', '-0.771', '-0.782', '-0.779', '-0.788', '-0.792', '-0.802', '-0.787', '-0.782', '-0.785', '-0.791', '-0.785', '-0.808', '-0.827', '-0.839', '-0.827', '-0.834', '-0.843', '-0.849', '-0.870', '-0.878', '-0.881', '-0.867', '-0.840']
+    ['0.000', '0.002', '-0.005', '-0.004', '0.021', '0.028', '0.042', '0.062', '0.066', '0.074', '0.078', '0.090', '0.079', '0.088', '0.059', '0.052', '0.047', '0.027', '-0.008', '-0.013', '0.003', '-0.020', '-0.021', '-0.017', '-0.032', '-0.035', '-0.036', '-0.024', '-0.027', '-0.037', '-0.066', '-0.086', '-0.118', '-0.138', '-0.137', '-0.138', '-0.135', '-0.127', '-0.109', '-0.129', '-0.127', '-0.113', '-0.105', '-0.105', '-0.096', '-0.091', '-0.090', '-0.096', '-0.080', '-0.091', '-0.103', '-0.075', '-0.091', '-0.100', '-0.067', '-0.050', '-0.069', '-0.061', '-0.068', '-0.092', '-0.100', '-0.093', '-0.129', '-0.134', '-0.150', '-0.166', '-0.177', '-0.172', '-0.154', '-0.177', '-0.165', '-0.174', '-0.178', '-0.202', '-0.213', '-0.218', '-0.220', '-0.234', '-0.237', '-0.252', '-0.240', '-0.263', '-0.249', '-0.244', '-0.243', '-0.222', '-0.233', '-0.233', '-0.243', '-0.243', '-0.264', '-0.279', '-0.266', '-0.279', '-0.267', '-0.291', '-0.273', '-0.282', '-0.296', '-0.297', '-0.280', '-0.291', '-0.299', '-0.302', '-0.311', '-0.325', '-0.322', '-0.333', '-0.330', '-0.346', '-0.349', '-0.334', '-0.347', '-0.350', '-0.352', '-0.358', '-0.365', '-0.349', '-0.345', '-0.388', '-0.397', '-0.416', '-0.417', '-0.415', '-0.427', '-0.416', '-0.410', '-0.407', '-0.397', '-0.386', '-0.423', '-0.444', '-0.452', '-0.427', '-0.419', '-0.432', '-0.446', '-0.451', '-0.471', '-0.500', '-0.478', '-0.493', '-0.475', '-0.488', '-0.509', '-0.507', '-0.520', '-0.525', '-0.530', '-0.566', '-0.549', '-0.571', '-0.569', '-0.592', '-0.584', '-0.597', '-0.602', '-0.593', '-0.611', '-0.630', '-0.629', '-0.640', '-0.668', '-0.664', '-0.667', '-0.663', '-0.654', '-0.645', '-0.642', '-0.665', '-0.650', '-0.661', '-0.663', '-0.690', '-0.696', '-0.719', '-0.726', '-0.739', '-0.772', '-0.767', '-0.752', '-0.772', '-0.743', '-0.748', '-0.743', '-0.746', '-0.751', '-0.745', '-0.743', '-0.734', '-0.725', '-0.732', '-0.734', '-0.758', '-0.785', '-0.834', '-0.830', '-0.828', '-0.817', '-0.834', '-0.818', '-0.821', '-0.820', '-0.833', '-0.834', '-0.826', '-0.852', '-0.845', '-0.848', '-0.854', '-0.858', '-0.862', '-0.850', '-0.867', '-0.884', '-0.876', '-0.882', '-0.867', '-0.870', '-0.857', '-0.859', '-0.864', '-0.897', '-0.925', '-0.937', '-0.937', '-0.942', '-0.932', '-0.916', '-0.925', '-0.948', '-0.957', '-0.971', '-1.006', '-1.016', '-1.026', '-1.033', '-1.022', '-1.027', '-1.015', '-1.004', '-0.995', '-1.009', '-1.017', '-1.030', '-1.027', '-1.041', '-1.067', '-1.083', '-1.046', '-1.031', '-1.075', '-1.070', '-1.086', '-1.100', '-1.119', '-1.125', '-1.121', '-1.151', '-1.138', '-1.164', '-1.191', '-1.200', '-1.200', '-1.225', '-1.211', '-1.208', '-1.236', '-1.227', '-1.234', '-1.213', '-1.223', '-1.228', '-1.216', '-1.209', '-1.216', '-1.221', '-1.227', '-1.216', '-1.210', '-1.201', '-1.217', '-1.224', '-1.212', '-1.220', '-1.238', '-1.232', '-1.212', '-1.227', '-1.221', '-1.248', '-1.244', '-1.251', '-1.274', '-1.270', '-1.285', '-1.277', '-1.294', '-1.272', '-1.287', '-1.308']
+    ['0.000', '0.010', '0.016', '0.031', '0.045', '0.048', '0.052', '0.063', '0.050', '0.064', '0.080', '0.069', '0.073', '0.074', '0.067', '0.063', '0.066', '0.048', '0.018', '0.011', '0.030', '0.019', '0.027', '0.024', '0.018', '0.024', '0.019', '0.006', '0.003', '0.002', '-0.017', '-0.035', '-0.038', '-0.005', '0.004', '-0.005', '-0.008', '-0.013', '0.021', '0.008', '0.005', '0.006', '0.011', '-0.000', '0.007', '0.039', '0.031', '0.030', '0.019', '0.025', '0.007', '0.020', '0.027', '0.046', '0.035', '0.049', '0.053', '0.038', '0.045', '0.017', '0.020', '0.032', '0.014', '0.011', '0.006', '0.012', '0.016', '0.034', '0.081', '0.083', '0.091', '0.084', '0.093', '0.098', '0.104', '0.074', '0.073', '0.065', '0.086', '0.088', '0.088', '0.075', '0.059', '0.052', '0.065', '0.070', '0.092', '0.102', '0.109', '0.117', '0.111', '0.105', '0.142', '0.128', '0.133', '0.103', '0.124', '0.112', '0.101', '0.106', '0.115', '0.109', '0.123', '0.132', '0.109', '0.096', '0.099', '0.096', '0.088', '0.087', '0.086', '0.105', '0.112', '0.126', '0.127', '0.117', '0.113', '0.109', '0.110', '0.077', '0.087', '0.063', '0.077', '0.077', '0.066', '0.073', '0.072', '0.081', '0.103', '0.134', '0.114', '0.113', '0.121', '0.143', '0.150', '0.160', '0.158', '0.166', '0.174', '0.173', '0.188', '0.190', '0.211', '0.214', '0.185', '0.214', '0.214', '0.210', '0.219', '0.219', '0.256', '0.252', '0.252', '0.235', '0.251', '0.232', '0.253', '0.250', '0.215', '0.215', '0.213', '0.192', '0.194', '0.193', '0.193', '0.201', '0.209', '0.230', '0.239', '0.201', '0.209', '0.202', '0.211', '0.207', '0.209', '0.213', '0.202', '0.229', '0.226', '0.213', '0.220', '0.233', '0.235', '0.238', '0.216', '0.242', '0.233', '0.245', '0.238', '0.220', '0.227', '0.228', '0.252', '0.257', '0.237', '0.268', '0.269', '0.277', '0.274', '0.278', '0.296', '0.302', '0.325', '0.300', '0.311', '0.319', '0.290', '0.315', '0.343', '0.327', '0.337', '0.338', '0.359', '0.343', '0.344', '0.352', '0.354', '0.360', '0.380', '0.363', '0.365', '0.368', '0.388', '0.385', '0.381', '0.363', '0.342', '0.351', '0.372', '0.355', '0.357', '0.362', '0.340', '0.330', '0.354', '0.362', '0.351', '0.362', '0.342', '0.353', '0.319', '0.373', '0.365', '0.361', '0.379', '0.405', '0.409', '0.411', '0.413', '0.458', '0.467', '0.449', '0.475', '0.489', '0.478', '0.490', '0.477', '0.491', '0.462', '0.483', '0.457', '0.456', '0.467', '0.475', '0.479', '0.500', '0.520', '0.535', '0.546', '0.541', '0.551', '0.557', '0.555', '0.546', '0.514', '0.500', '0.503', '0.482', '0.497', '0.491', '0.505', '0.533', '0.534', '0.567', '0.574', '0.563', '0.571', '0.576', '0.580', '0.591', '0.572', '0.574', '0.578', '0.568', '0.578', '0.583', '0.560', '0.597', '0.610', '0.599', '0.608']
+      </code></pre>
+      <p>
+        Finally I demonstrated a short stunt with my car in which I was able to drive fast in one directions then quickly 
+        spint the wheels the other direction allowing the car to flip over.
       </p>
 
-      <pre><code>
-/* TODO: Arduino snippet: format you send over BLE (CSV line per sample recommended) */
-      </code></pre>
-
-      <pre><code>
-/* TODO: Python snippet: notification handler + parsing + plotting */
-      </code></pre>
-
-      <div class="image-block">
-        <img src="images/lab2_5s_ble_plot.png" alt="5 seconds data plot">
-        <div class="image-caption">Plot showing at least 5 seconds of IMU data received over BLE.</div>
-      </div>
-
-      <!-- ================= RECORD A STUNT ================= -->
       <h3>Record a stunt!</h3>
-      <p>
-        <!-- TODO: describe baseline driving observations + what stunt you recorded + what you expected in IMU. -->
-        [Describe 5 minutes of driving tests and what you observed. Then describe the stunt you recorded.]
-      </p>
 
       <div class="image-block">
         <div class="video-container">
-          <!-- TODO: replace with your YouTube embed -->
           <iframe
-            src="https://www.youtube.com/embed/VIDEO_ID_HERE"
+            src="https://www.youtube.com/embed/pjUBxnGDx2g"
             title="Lab 2 Stunt Video"
             frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen>
           </iframe>
         </div>
-        <div class="image-caption">Stunt recording + brief discussion of IMU signature.</div>
       </div>
 
-      <h3>Results discussion</h3>
-      <p>
-        <!-- TODO: briefly interpret what the IMU plots show during the stunt (peaks, turns, vibrations, drift). -->
-        [Discuss the IMU data during the stunt and how it matches your observations.]
-      </p>
 
-      <div class="image-block">
-        <img src="images/lab2_stunt_data_plot.png" alt="Stunt IMU data plot">
-        <div class="image-caption">IMU plot during stunt (identify key moments).</div>
-      </div>
 
-      <!-- ================= CONCLUSION ================= -->
-      <h3>Conclusion</h3>
-      <p>
-        <!-- TODO: 4–8 sentences: what worked, what you learned, and what you’ll reuse in later labs. -->
-        [Write your conclusion here.]
-      </p>
-
-      <div class="note">
-        <strong>Code:</strong> Add only the most relevant snippets (consider GitHub Gists). Do not paste entire files.
-      </div>
     </section>
 
   </div>
