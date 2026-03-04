@@ -191,15 +191,34 @@
         <p>
             Next I wrote the following code to loop through PWM values and assign them using analogWrite commands. This allowed me to regulate the power of the motor drivers.
         </p>
+        <pre><code>
+            #define motorL1 A2
+            #define motorL2 A3
 
+            void setup() {
+            pinMode(motorL1, OUTPUT);
+            pinMode(motorL2, OUTPUT);
+            }
+
+            void loop() {
+            analogWrite(motorL1, 0);
+            for (int i = 0; i < 256; i++) {
+                analogWrite(motorL2, i);
+                delay(10);
+            }
+            }
+        </code></pre>
+
+        <div class="image-block">
+        <img src="images/Lab4oscillosetup.jpg">
+      </div>
         <p>
-            Here is the output from using the oscilloscope to measure the PWM signal from the artemis board to the motor driver.
+            Here are the results from using the oscilloscope to measure the PWM signal:
         </p>
 
-        
-        <p>
-            Here is the output from using the oscilloscope to measure the PWM signal from the artemis board to the motor driver.
-        </p>
+        <div class="image-block">
+        <img src="images/Lab4oscilloresults2.jpg">
+      </div>
 
         <h3>Taking the Car Apart</h3>
         <p> 
@@ -207,33 +226,158 @@
             soldered the wires from my motors drives to the actual motors and tested spining the wheels on both sides of the car to ensure everything was working properly.
             Below is a video of this working.
         </p>
+        
+        <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/XAqPa_-0deY"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
 
         <h3>Power</h3>
         <p>
             I then connected the motor drivers to the 850mAh battery so that I would no longer need to use the external power supply. After this I ensured that the same 
             code worked to spin the wheels as when I had used the external power supply.
         </p>
-
+        
 
         <h3>Installation</h3>
         <p>
-            After ensuring that the motor drives worked properly, I installed everything into the chassis.
+            After ensuring that the motor drives worked properly, I installed everything into the chassis. I set up all the components in a similar fashion to 
+            what was shown for the lab instructions. I then used zip ties to group wires together and keep everything organized. I then used scotch tape to secure everything down,
+            however I plan to switch to duct tape when I can get access to some as I believe it would make the setup more secure.
         </p>
+
+        <div class="image-block">
+        <img src="images/Lab4Car.jpg">
+      </div>
+        
+        <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/Bi2DC5DliJw"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
+        <p>Both wheels spinning using battery</p>
 
         <h3>Running the Car</h3>
         <p>
-            Finally, I was able to run the code on the ground. First I found the minimum PWM value that allowed the car to actually move forward.
+            Finally, I was able to run the code on the ground. First I found the minimum PWM value that allowed the car to actually move forward. This came
+            out to be a PWM of 75 for the left motor and 50 for the right motor (on my carpet floor)
         </p>
+
+        <pre><code>
+            #define motorL1 A2
+            #define motorL2 A3
+            #define motorR1 4
+            #define motorR2 A5
+
+
+            void setup() {
+            pinMode(motorL1, OUTPUT);
+            pinMode(motorL2, OUTPUT);
+            pinMode(motorR1, OUTPUT);
+            pinMode(motorR2, OUTPUT);
+            }
+
+            void loop() {
+            analogWrite(motorL1, 0);
+            analogWrite(motorR1, 0);
+            delay(10000);
+
+            analogWrite(motorL2, 70);
+            analogWrite(motorR2, 45);
+            delay(1500);
+            analogWrite(motorL2, 0);
+            analogWrite(motorR2, 0);
+            delay(10000);
+            }
+
+        </code></pre>
+
+        <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/yq6t3WQ5DLQ"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
 
         <p>
             After this I did some calibration since the motors were not perfectly balanced. After calibration, I was able to ensure that the car moved in a relatively straight line.
         </p>
 
+        <pre><code>
+            #define motorL1 A2
+            #define motorL2 A3
+            #define motorR1 4
+            #define motorR2 A5
+
+
+            void setup() {
+            pinMode(motorL1, OUTPUT);
+            pinMode(motorL2, OUTPUT);
+            pinMode(motorR1, OUTPUT);
+            pinMode(motorR2, OUTPUT);
+            }
+
+            void loop() {
+            analogWrite(motorL1, 0);
+            analogWrite(motorR1, 0);
+            delay(10000);
+
+            analogWrite(motorL2, 30);
+            analogWrite(motorR2, 30);
+            delay(15);
+            analogWrite(motorL2, 0);
+            analogWrite(motorR2, 0);
+            delay(10000);
+            }
+
+        </code></pre>
+        <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/pI42exARJb8"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
+      <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/lrhaqouRBZA"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
         <p>
-            To complete the lab, I programmed my robot to drive throgh a known course (my apartment).
+            To complete the lab, I programmed my robot to drive around my room.
         </p>
 
-
+        <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/VXhxD_PG8qI"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
 
 
     </section>
