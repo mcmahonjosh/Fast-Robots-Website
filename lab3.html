@@ -165,11 +165,20 @@
 
     <section>
       <h2>Prelab</h2>
-      <p> In this lab we used two time of flight sensors. Since they both have the same address, I had to change the address of one of them. 
+      <p> In this lab we used two time of flight sensors. Since they both have the same address (0x29), I had to change the address of one of them. 
         I did this by soldering the XSHUT pin to a GPIO pin on the artemis for one of the sensors, and then setting it low to disable the sensor, changing the address of the other sensor, and then re-enabling the first sensor.
+        For placement, I plan to put one sensor on the front and one sensor on the side. The sensor on the front will be the most important as it will prevent the car from running into obstacles that are in front
+        of its path. The sensor on the side will help the car to run along side and obtacle like a wall and maintain a certain distance from it. With this setup, the car
+        will not be able to detect obstacles coming from behind it (we cannot safely back up all the time), as well as movning obstacles that are coming towards the car from the 
+        side without the sensor.
       </p>
 
+
       <h2>Tasks</h2>
+
+      <div class="image-block">
+        <img src="images/Lab3setup.jpg">
+      </div>
 
       <h3>Powering the Artemis with a battery</h3>
        
@@ -179,6 +188,11 @@
         then unplugged the USB cabel (leaving the battery as the only power source) and sent over a BLE command from my computer to artemis and back to the computer.
       </p>
 
+      
+      <div class="image-block">
+        <img src="images/Lab3battery.jpg">
+      </div>
+      <P> An image of the final setup (mainly shown for the battery connection).</P>
 
       <h2>Setting Up the Time of Flight Sensors</h2>
        
@@ -192,6 +206,10 @@
         Next, I plugged in one of the TOF sensors to the QWIIC breakout board and ran the Example05_wire_I2C example code. The code printed address 29 for the QWICC breakout board
         outlet that had the TOF sensor plugged in and outputed that none of the other outlets/ports had a device plugged in as expected.
     </p>
+    <pre><code>
+        Scanning... (port: 0x10000E9C), time (ms): 412506 0x29 detected 
+        Scanning... (port: 0x10001190), time (ms): 412545 No device detected!
+    </code></pre>
 
         <h3>Short or Long Distance?</h3>
 
@@ -203,6 +221,10 @@
  
         </p>
 
+        <div class="image-block">
+        <img src="images/Lab3tof.jpg">
+        </div>
+
 
         <h3>Two TOF Sensors at the Same Time</h3>
 
@@ -212,6 +234,107 @@
             me to get readings from both of the sensors at the same time.
         </p>
 
+
+        <pre><code> 
+            #define SHUTDOWN_PIN 8
+            #define INTERRUPT_PIN 3
+            SFEVL53L1X distance_sensor_1(Wire, SHUTDOWN_PIN);
+            SFEVL53L1X distance_sensor_2;
+
+
+            void setup(void)
+            {
+            Serial.begin(115200);
+
+
+            
+            pinMode(SHUTDOWN_PIN, OUTPUT);
+            digitalWrite(SHUTDOWN_PIN, LOW);
+            Wire.begin();
+            distance_sensor_2.init();
+            distance_sensor_2.setI2CAddress(0x30);
+            if (distance_sensor_2.begin() != 0) //Begin returns 0 on a good init
+            {
+                Serial.println("2nd Sensor failed to begin. Please check wiring. Freezing...");
+                while (1)
+                ;
+            }
+            Serial.println("2nd Sensor online!");
+
+
+            digitalWrite(SHUTDOWN_PIN, HIGH);
+            if (distance_sensor_1.begin() != 0)   {
+                Serial.println("1st Sensor failed to begin. Please check wiring. Freezing...");
+                while (1)
+                ;
+            }
+
+
+            Serial.println("1st Sensor online!");
+
+
+            distance_sensor_1.setDistanceModeShort();
+            distance_sensor_2.setDistanceModeShort();
+
+
+            Serial.print("D1 Sensor Address: ");
+            Serial.print(distance_sensor_1.getI2CAddress(), HEX);
+            Serial.print("D2 Sensor Address: ");
+            Serial.print(distance_sensor_2.getI2CAddress(), HEX);
+
+
+            }
+
+
+            void loop(void)
+            {
+            distance_sensor_1.startRanging(); 
+            while (!distance_sensor_1.checkForDataReady())
+            {
+                delay(1);
+            }
+            int distance1 = distance_sensor_1.getDistance();   distance_sensor_1.clearInterrupt();
+            distance_sensor_1.stopRanging();
+
+
+            distance_sensor_2.startRanging();
+
+
+            while (!distance_sensor_2.checkForDataReady())
+            {
+                delay(1);
+            }
+            int distance2 = distance_sensor_2.getDistance();   distance_sensor_2.clearInterrupt();
+            distance_sensor_2.stopRanging();
+
+
+            Serial.print("Distance1(mm): ");
+            Serial.print(distance1);
+
+
+            Serial.print("Distance2(mm): ");
+            Serial.print(distance2);
+
+
+            Serial.println();
+            }
+
+        </code></pre>
+
+        <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/gc8t27QwVi8"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+      <p> While the video struggles to focus on the TOF sensors and the output at the same time, we see that as I cover one of the TOF sensors it 
+        records very small values while the other sensor (which is not covered) records much larger values.
+      </p>
+
         <h3>Eliminate Hanging</h3>
 
         <p>
@@ -219,6 +342,111 @@
             If no value was ready at the time, then a value of -1 was added to the array/printed. This way, I could run the code without having to wait for the TOF sensors to have ready values and not have the code hang while waiting for them.
             I also printed the clock to Serial at every iteration of the loop and incremented a counter variable to keep track of how many loops had run. This allowed me to see how often the TOF sensors' data was ready.
         </p>
+
+        <pre><code>
+            #define SHUTDOWN_PIN 8
+            #define INTERRUPT_PIN 3
+            SFEVL53L1X distance_sensor_1(Wire, SHUTDOWN_PIN);
+            SFEVL53L1X distance_sensor_2;
+
+
+            int counter = 0;
+            int counterA = 0;
+            int counterB = 0;
+            int total_t = 0;
+
+
+            void setup(void)
+            {
+            Serial.begin(115200);
+
+
+            pinMode(SHUTDOWN_PIN, OUTPUT);
+            digitalWrite(SHUTDOWN_PIN, LOW);
+            Wire.begin();
+            distance_sensor_2.init();
+            distance_sensor_2.setI2CAddress(0x30);
+            if (distance_sensor_2.begin() != 0)
+            {
+                Serial.println("2nd Sensor failed to begin. Please check wiring. Freezing...");
+                while (1)
+                ;
+            }
+            Serial.println("2nd Sensor online!");
+
+            digitalWrite(SHUTDOWN_PIN, HIGH);
+            if (distance_sensor_1.begin() != 0)   {
+                Serial.println("1st Sensor failed to begin. Please check wiring. Freezing...");
+                while (1)
+                ;
+            }
+
+            Serial.println("1st Sensor online!");
+            distance_sensor_1.setDistanceModeShort();
+            distance_sensor_2.setDistanceModeShort();
+
+            Serial.print("D1 Sensor Address: ");
+            Serial.print(distance_sensor_1.getI2CAddress(), HEX);
+            Serial.print("D2 Sensor Address: ");
+            Serial.print(distance_sensor_2.getI2CAddress(), HEX);
+
+            distance_sensor_1.startRanging();
+            distance_sensor_2.startRanging();
+            }
+
+            void loop(void)
+            {
+            int t = millis();
+            if (t < 3000) {
+            int distance1;
+            if (distance_sensor_1.checkForDataReady()) {
+                distance1 = distance_sensor_1.getDistance();
+                counterA += 1;
+
+
+                distance_sensor_1.clearInterrupt();
+            } else {
+                distance1 = -1;
+            }
+
+
+            int distance2;
+            if (distance_sensor_2.checkForDataReady()) {
+                distance2 = distance_sensor_2.getDistance();
+                counterB += 1;
+
+
+                distance_sensor_2.clearInterrupt();
+            } else {
+                distance2 = -1;
+            }
+            
+            Serial.print("Millis: ");
+            Serial.print(t);
+
+            Serial.print(" Distance1(mm): ");
+            Serial.print(distance1);
+            Serial.print(" Distance2(mm): ");
+            Serial.print(distance2);
+
+
+            counter += 1;
+            Serial.println();
+            } else {
+                total_t = t;
+                Serial.println(counter);
+                Serial.println(total_t);
+                Serial.println(counter / total_t);
+                Serial.println(counterA);
+                Serial.println(counterB);
+
+
+                delay(10000);
+            }
+
+            }
+
+        </code></pre>
 
         <pre><code>
             325 loops / 3002 ms
@@ -241,11 +469,23 @@
             based on BLE commands from the computer. I then recorded data for a few seconds:
         </p>
 
+
+
     </section>
 
 
 
+    <div class="image-block">
+        <img src="images/Lab3tofg.png">
+    </div>
 
+    <div class="image-block">
+        <img src="images/Lab3accg.png">
+    </div>
+
+    <div class="image-block">
+        <img src="images/Lab3gyrog.png">
+    </div>
 
     
 
