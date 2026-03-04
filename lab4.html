@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lab 2 – IMU</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #111;
+      background: #fff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    a {
+      color: #111;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    header {
+      margin-bottom: 50px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #555;
+      font-size: 16px;
+    }
+
+    .back-link {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+
+    section {
+      margin-bottom: 60px;
+    }
+
+    section h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 6px;
+    }
+
+    section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 26px;
+      margin-bottom: 10px;
+    }
+
+    section p, li {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    ul {
+      margin-top: 0;
+    }
+
+    .image-block {
+      margin: 24px 0;
+      text-align: center;
+    }
+
+    .image-block img {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .image-caption {
+      font-size: 14px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 14px;
+      margin: 20px 0;
+    }
+
+    code {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+    }
+
+    .note {
+      background: #fafafa;
+      border-left: 4px solid #ddd;
+      padding: 14px 16px;
+      color: #444;
+      font-size: 15px;
+      margin: 20px 0;
+    }
+
+    video {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+    }
+
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="index.html" class="back-link">← Back to labs</a>
+
+    <header>
+      <h1>Lab 4: Motors and Open Loop Control</h1>
+      <p>ECE 4160 – Fast Robots</p>
+    </header>
+
+    <section>
+      <h2>Objective</h2>
+      <p> 
+        The purpose of this lab was to set up open loop control of the car, eliminating the need to manually control it. This involved soldering all of the necessary components to the artemis board, writing code to control the motors, and then testing it.
+      </p>
+
+    </section>
+    
+    <section>
+      <h2>PreLab</h2>
+      <p>
+        I chose pins A2 and A3 for my first motor driver and pins 4 and A5 for my second. I chose ports that wouldn't require long wires to reach the motor drivers that are mounted 
+        on the opposite side of the car from the artemis board.  
+        </p>
+        <p>
+        We power the Artemis separately from the motors because DC motors draw large, noisy current spikes that cause voltage sag and electrical noise on the supply rail. 
+        Sharing a battery can lead to resets and corrupted sensor/BLE behavior, so separate power keeps the Artemis supply clean and stable.
+        </p>
+      <p>
+        When approaching this lab I had to think ahead to how I was going to set everything up in the car. This was important because I didn't want my wires to be too long or not long enough.
+        I wanted to give some wiggle room but didn't want an excess length of cables inside my car. Longer cabels would also increase the risk of noise and interference, which could cause issues with the motors and sensors.
+      </p>
+
+
+        <h2>Tasks</h2>
+
+        <h3>Testing the Motor Drivers</h3>
+        <p>I first sodered wires to both motor drivers as seen in my diagram. I then hooked up the motor driver to an external power supply set to 3.7 V. This seemed quite reasonable since 
+            the motor drivers would eventually be powered with a 3.7 V battery.
+        </p>
+        <p>
+            Next I wrote the following code to loop through PWM values and assign them using analogWrite commands. This allowed me to regulate the power of the motor drivers.
+        </p>
+
+        <p>
+            Here is the output from using the oscilloscope to measure the PWM signal from the artemis board to the motor driver.
+        </p>
+
+        
+        <p>
+            Here is the output from using the oscilloscope to measure the PWM signal from the artemis board to the motor driver.
+        </p>
+
+        <h3>Taking the Car Apart</h3>
+        <p> 
+            Next I took the car apart and removed the leds and their respective wires. I also removed the control PCB and cut all connecting wires to the motors. I then 
+            soldered the wires from my motors drives to the actual motors and tested spining the wheels on both sides of the car to ensure everything was working properly.
+            Below is a video of this working.
+        </p>
+
+        <h3>Power</h3>
+        <p>
+            I then connected the motor drivers to the 850mAh battery so that I would no longer need to use the external power supply. After this I ensured that the same 
+            code worked to spin the wheels as when I had used the external power supply.
+        </p>
+
+
+        <h3>Installation</h3>
+        <p>
+            After ensuring that the motor drives worked properly, I installed everything into the chassis.
+        </p>
+
+        <h3>Running the Car</h3>
+        <p>
+            Finally, I was able to run the code on the ground. First I found the minimum PWM value that allowed the car to actually move forward.
+        </p>
+
+        <p>
+            After this I did some calibration since the motors were not perfectly balanced. After calibration, I was able to ensure that the car moved in a relatively straight line.
+        </p>
+
+        <p>
+            To complete the lab, I programmed my robot to drive throgh a known course (my apartment).
+        </p>
+
+
+
+
+    </section>
+
+  </div>
+</body>
+</html>

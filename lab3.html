@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Lab 2 – IMU</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      color: #111;
+      background: #fff;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    a {
+      color: #111;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    header {
+      margin-bottom: 50px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #555;
+      font-size: 16px;
+    }
+
+    .back-link {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+
+    section {
+      margin-bottom: 60px;
+    }
+
+    section h2 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 6px;
+    }
+
+    section h3 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-top: 26px;
+      margin-bottom: 10px;
+    }
+
+    section p, li {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    ul {
+      margin-top: 0;
+    }
+
+    .image-block {
+      margin: 24px 0;
+      text-align: center;
+    }
+
+    .image-block img {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .image-caption {
+      font-size: 14px;
+      color: #666;
+      margin-top: 8px;
+    }
+
+    pre {
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
+      font-size: 14px;
+      margin: 20px 0;
+    }
+
+    code {
+      font-family: Consolas, Monaco, "Courier New", monospace;
+    }
+
+    .note {
+      background: #fafafa;
+      border-left: 4px solid #ddd;
+      padding: 14px 16px;
+      color: #444;
+      font-size: 15px;
+      margin: 20px 0;
+    }
+
+    video {
+      max-width: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+    }
+
+    .video-container iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+
+    <a href="index.html" class="back-link">← Back to labs</a>
+
+    <header>
+      <h1>Lab 3: Time of Flight Sensors</h1>
+      <p>ECE 4160 – Fast Robots</p>
+    </header>
+
+    <section>
+      <h2>Objective</h2>
+      <p> The purpose of this lab was to set up the time of flight sensors. 
+      </p>
+
+    </section>
+
+    <section>
+      <h2>Prelab</h2>
+      <p> In this lab we used two time of flight sensors. Since they both have the same address, I had to change the address of one of them. 
+        I did this by soldering the XSHUT pin to a GPIO pin on the artemis for one of the sensors, and then setting it low to disable the sensor, changing the address of the other sensor, and then re-enabling the first sensor.
+      </p>
+
+      <h2>Tasks</h2>
+
+      <h3>Powering the Artemis with a battery</h3>
+       
+      <p>
+        To start of the lab, we set up the artemis board to be powered with a 650mAh batter as opposed to being powered by the computer through the USB. Since the connector to my battery 
+        wasn't compatible with the artemis, I had to cut the wires of my battery and solder it to a connector that could plug into the artemis. To test that the battery was working to power the artemis,
+        then unplugged the USB cabel (leaving the battery as the only power source) and sent over a BLE command from my computer to artemis and back to the computer.
+      </p>
+
+
+      <h2>Setting Up the Time of Flight Sensors</h2>
+       
+      <p>
+        I then worked on setting up the TOF sensors. I first installed the SparkFun VL53L1X 4m laser distance sensor library. After this I took two of the QWIIC cables in my kit and cut of one side of them.
+        Then for each wire I took one of the TOF sensors and soldered the cut end into the TOF pins. Finally for one of the TOF sensors I soldered the XSHUT pin to a GPIO pin on the artemis so that I could change its address.
+
+      </p>
+
+      <p>
+        Next, I plugged in one of the TOF sensors to the QWIIC breakout board and ran the Example05_wire_I2C example code. The code printed address 29 for the QWICC breakout board
+        outlet that had the TOF sensor plugged in and outputed that none of the other outlets/ports had a device plugged in as expected.
+    </p>
+
+        <h3>Short or Long Distance?</h3>
+
+        <p>
+            I then had to decide on whether to use the short or long distance mode for the TOF sensors. The short distance mode is optimal up to 1.3m while the long distance mode can go up 
+            to 4m. Since the stunts will mainly require me to go a very close distance to walls, I decided that the short distance mode would be more suitable for my applications since it would
+            give more accurate readings at close distances. I then used the Example1_ReadDistance example code to test the range, accuracy, repeatability, and ranging time of my TOF sensor. I used the
+            following setup for testing the sensor. I tested it at various distances from the wall and recorded multiple different readings at each distance to get a semse of the performacne of the sensor.
+ 
+        </p>
+
+
+        <h3>Two TOF Sensors at the Same Time</h3>
+
+        <p>
+            Next, I set plugged in the second TOF sensor. In order to get readings from both at the same time, I had to use the following code to shut of the sensor that 
+            had the XSHUT connected to the board. While it was shut of, I then changed the address of the ofther sensor. Finally, I re-enabled the sensor that was turned off. This allowed
+            me to get readings from both of the sensors at the same time.
+        </p>
+
+        <h3>Eliminate Hanging</h3>
+
+        <p>
+            Instead of waiting for the TOF sensors to have ready values, I changed the code to run throgh each loop without waiting. If a TOF sensor had a ready values, this was added to the arrary/printed. 
+            If no value was ready at the time, then a value of -1 was added to the array/printed. This way, I could run the code without having to wait for the TOF sensors to have ready values and not have the code hang while waiting for them.
+            I also printed the clock to Serial at every iteration of the loop and incremented a counter variable to keep track of how many loops had run. This allowed me to see how often the TOF sensors' data was ready.
+        </p>
+
+        <pre><code>
+            325 loops / 3002 ms
+            325 loops / 3.002 seconds = 108.3 loops / second
+            26 sensor readings for sensor1 and sensor2
+            26 / 3.002 = 8.66 readings per second
+
+        </code></pre>
+
+        <p>
+            Based on this information, it was clear that the bottle neck or limiting factor was how fast the sensor can read/record new information. The speed at which 
+            the TOF sensors had a new value ready was significantly slower than the speed of the overall loop.
+        </p>
+
+
+        <h3>Record TOF and IMU data</h3>
+
+        <p>
+            Finally, I edited my BLE code to be able to record both TOF and IMU data. I used the same method of storing data in arrays and recording/sending the data over 
+            based on BLE commands from the computer. I then recorded data for a few seconds:
+        </p>
+
+    </section>
+
+
+
+
+
+    
+
+  </div>
+</body>
+</html>
