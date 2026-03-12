@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Lab 2 – IMU</title>
+  <title>Lab 5 – Linear PID Control and Linear Interpolation</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -80,6 +80,7 @@
 
     ul {
       margin-top: 0;
+      padding-left: 20px;
     }
 
     .image-block {
@@ -152,17 +153,544 @@
     <a href="index.html" class="back-link">← Back to labs</a>
 
     <header>
-      <h1>Lab 3: Time of Flight Sensors</h1>
+      <h1>Lab 5: Linear PID Control and Linear Interpolation</h1>
       <p>ECE 4160 – Fast Robots</p>
     </header>
 
     <section>
       <h2>Objective</h2>
-      <p> The purpose of this lab was to set up the time of flight sensors. 
+      <p>
+        The purpose of this lab was to implement position control using feedback from the ToF sensor so that the robot could drive toward a wall and stop at a desired setpoint. In this lab I focused on a <strong>PI</strong> controller and evaluated its practical performance, including overshoot, settling behavior, and robustness to changing starting conditions. I also implemented linear extrapolation so that the control loop could run faster than the ToF sensor update rate.
+      </p>
+    </section>
+
+    <section>
+      <h2>Prelab and BLE Debugging Setup</h2>
+
+      <h3>Control / Logging Strategy</h3>
+      <p>
+        Before starting the control portion of the lab, I set up a debugging workflow over Bluetooth. My robot waits for a start command from my computer, runs the controller for a fixed amount of time while storing debugging data in arrays, and then sends the logged data back over BLE after the run completes.
       </p>
 
+      <p>
+        The main values I logged were:
+      </p>
+      <ul>
+        <li>time stamps</li>
+        <li>distance to wall from the ToF sensor</li>   
+        <li>estimated / extrapolated distance</li>
+        <li>PWM motor command</li>
+      </ul>
+
+      <div class="note">
+        I also implemented a hard stop directly on the Artemis so that the robot would stop if the Bluetooth connection was lost.
+      </div>
+
+      <h3>Arduino BLE Commands</h3>
+      <p>
+        I created BLE commands to start the car, stop the car, change controller gains, and send stored debugging data back to the computer.
+      </p>
+
+      <pre><code>
+        case START_CAR:
+            
+
+            error_integral = 0;
+            prev_time_pi = 0;
+            pid_counter = 0;
+            car_is_on = true;
+            distance_sensor_2.startRanging();
+            
+            
+            
+
+            tx_estring_value.clear();
+            tx_estring_value.append("Car Started");
+            tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+
+            break;
+
+        case STOP_CAR:
+            
+            car_is_on = false;
+            distance_sensor_2.stopRanging();
+
+            analogWrite(motorL1, 0);
+            analogWrite(motorL2, 0);
+            analogWrite(motorR1, 0);
+            analogWrite(motorR2, 0);
+
+   
+
+            tx_estring_value.clear();
+            tx_estring_value.append("Car Stopped");
+            tx_characteristic_string.writeValue(tx_estring_value.c_str());
+
+            break;
+
+        case SET_PID_GAINS:
+
+            float kpfloat, kifloat;
+
+
+            success = robot_cmd.get_next_value(kpfloat);
+            if (!success)
+                return;
+
+
+            success = robot_cmd.get_next_value(kifloat);
+            if (!success)
+                return;
+
+            kp = kpfloat;
+            ki = kifloat;
+
+
+            break;
+
+        case SEND_PID_DATA:
+
+
+            for (int i = 0; i <= pid_counter; i++) {
+
+              SERIAL_PORT.println(i);
+              SERIAL_PORT.println("WORKs");
+           
+   
+
+              tx_estring_value.clear();
+              
+              tx_estring_value.append(i);
+              tx_estring_value.append(",");
+              tx_estring_value.append(time_arr_imu[i]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(time_arr_imu_real[i]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(distance_sensor2_we[i]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(distance_sensor2[i]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(pwm_data[i]);
+              tx_estring_value.append(",");
+              tx_estring_value.append(real_dist_val_counter);
+
+
+              tx_characteristic_string.writeValue(tx_estring_value.c_str());
+              
+            }
+            
+
+
+            break;
+      </code></pre>
+
+      <h3>Python BLE Interface</h3>
+      <p>
+        On the Python side, I wrote helper functions to send commands to the robot and store debugging data into arrays for plotting.
+      </p>
+
+      <pre><code>
+pid_index_a = []
+time_arr_imu_a = []
+time_arr_imu_real_a = []
+distance_sensor2_we_a = []
+distance_sensor2_a = []
+pwm_data_a = []
+parts_a = []
+real_count = []
+
+def collect_pid_data(sender, byte_array):
+    line = ble.bytearray_to_string(byte_array).strip()
+    #print(line)   # optional, useful for debugging
+
+    parts_a.append(line)
+    parts = line.split(",")
+
+    if len(parts) != 7:
+        return
+
+    i, t_loop, t_real, d_est, d_real, pwm, real = parts
+
+    pid_index_a.append(int(i))
+    time_arr_imu_a.append(float(t_loop))
+    time_arr_imu_real_a.append(float(t_real))
+    distance_sensor2_we_a.append(float(d_est))
+    distance_sensor2_a.append(float(d_real))
+    pwm_data_a.append(float(pwm))
+    real_count.append(int(real))
+      </code></pre>
     </section>
+
+    <section>
+      <h2>Controller Design</h2>
+
+      <h3>Choice of Controller</h3>
+      <p>
+        I chose to use a PI controller because it gave a good balance between performance and implementation complexity. A proportional term alone can drive the robot toward the target quickly, but it may still leave a steady-state error and settle slightly away from the desired distance. Adding the integral term helps eliminate this leftover error by continuing to correct the robot when the distance remains consistently above or below the setpoint. This allowed me to reach the target more accurately without making the controller unnecessarily complicated.s
+      </p>
+
+      <h3>Control Law</h3>
+      <p>
+        My controller used the error between the measured distance and the target distance:
+      </p>
+      
+
+      <pre><code>
+error = current_dist - desired_dist;
+control_signal = kp * error + ki * integral_error;
+      </code></pre>
+
+      <p>
+        I then constrained the controller output and mapped it into a motor PWM range that would overcome motor deadband:
+      </p>
+
+      <pre><code>
+pwm_val = constrain((int)control_signal, -150, 150);
+
+if (pwm_val > 0) {
+    updated_pwm = map(pwm_val, 0, 150, 40, 150);
+    // drive one direction
+} else {
+    updated_pwm = map(-pwm_val, 0, 150, 40, 150);
+    // drive opposite direction
+}
+      </code></pre>
+
+      <p>
+      My main loop then included checking if a new distance reading was available from the ToF sensor (and if not extrapolating) and then passing this value
+      along with the desired distance into my function to compute the pwm value using pi control. Finally the loop does analog write commands to change the speed/direction 
+      of the motors. Inside the loop I have the following code:
+      </p>
+
+      <pre><code>
+    if (central)
+      {
+        while (central.connected())
+        {
+          BLE.poll();
+          write_data();
+          read_data();
+      
+      
+      if (car_is_on) {
+        //distance_sensor_2.startRanging();
+        
+        int dist = -1;
+        time_arr_imu[pid_counter] = millis();
+        if (distance_sensor_2.checkForDataReady()) {
+        dist = distance_sensor_2.getDistance();
+        distance_sensor2_we[pid_counter] = dist;
+        distance_sensor2[real_dist_val_counter] = dist;
+        time_arr_imu_real[real_dist_val_counter] = millis();
+        SERIAL_PORT.println(dist);
+        distance_sensor_2.clearInterrupt();
+        real_dist_val_counter += 1;
+        //distance_sensor_2.stopRanging();
+        }
+
+        if (dist == -1) { //extrapelation
+          if (real_dist_val_counter < 2) {
+            dist = 200;
+            distance_sensor2_we[pid_counter] = dist;
+          } else {
+            float slope = (distance_sensor2[real_dist_val_counter-1] - distance_sensor2[real_dist_val_counter-2]) / float(time_arr_imu_real[real_dist_val_counter-1] - time_arr_imu_real[real_dist_val_counter-2]);
+            int time_elapsed = time_arr_imu[pid_counter] - time_arr_imu_real[real_dist_val_counter-1];
+            distance_sensor2_we[pid_counter] = distance_sensor2[real_dist_val_counter-1] + time_elapsed * slope;
+            dist = distance_sensor2_we[pid_counter];
+          }    
+        }
+        //SERIAL_PORT.println(dist);
+        SERIAL_PORT.print(dist);
+        int desired_dist = 305;
+        int pwm_val = pi_value(dist, desired_dist);
+
+        SERIAL_PORT.print(", ");
+
+        SERIAL_PORT.println(pwm_val);
+        pwm_val = constrain(pwm_val, -150, 150);
+
+        pwm_data[pid_counter] = pwm_val;
+
+        int updated_pwm;
+        if (abs(pwm_val) == 0) {
+          analogWrite(motorL1, 0);
+          analogWrite(motorL2, 0);
+          analogWrite(motorR1, 0);
+          analogWrite(motorR2, 0);
+          //car_is_on = false;
+          //distance_sensor_2.stopRanging();
+        } else if (pwm_val > 0) {
+          updated_pwm = map(pwm_val, 0, 150, 40, 150);
+          analogWrite(motorL1, 0);
+          analogWrite(motorR2, 0);
+
+          analogWrite(motorL2, updated_pwm*1.2);
+          analogWrite(motorR1, updated_pwm*1.35*1.2);
+
+        } else {
+          updated_pwm = map(-pwm_val, 0, 150, 40, 150);
+          analogWrite(motorL1, updated_pwm*1.2);
+          analogWrite(motorR2, updated_pwm*1.35*1.2);
+
+          analogWrite(motorL2, 0);
+          analogWrite(motorR1, 0);
+        }
+        pid_counter += 1;
+        if (pid_counter >= N) {
+          car_is_on = false;
+          distance_sensor_2.stopRanging();
+          analogWrite(motorL1, 0);
+          analogWrite(motorL2, 0);
+          analogWrite(motorR1, 0);
+          analogWrite(motorR2, 0);
+        }
+      }
+
+      
+    }
+      car_is_on = false;
+      distance_sensor_2.stopRanging();
+      analogWrite(motorL1, 0);
+      analogWrite(motorL2, 0);
+      analogWrite(motorR1, 0);
+      analogWrite(motorR2, 0);
+    } else {
+       BLE.poll();  
+       car_is_on = false;
+       distance_sensor_2.stopRanging();
+       analogWrite(motorL1, 0);
+       analogWrite(motorL2, 0);
+       analogWrite(motorR1, 0);
+       analogWrite(motorR2, 0);
+      
+    }
+      </code></pre>
+
+
+
+    <section>
+      <h2>Sensor Sampling and Loop Frequency</h2>
+
+      <h3>ToF Sensor Update Rate</h3>
+      <p>
+        I measured the update rate of the ToF sensor by incrermenting a counter variable every time the ToF sensor had available data. I then recorded the time stamps of consecutive valid sensor readings. 
+        In 8960.0 milliseconds, my ToF sensor recorded 100 values, producing an update rate of 0.011160714285714286 updates per millisecond or about 11.16 updates per second (11.16 Hz)
+
+         
+      </p>
+
+      <h3>Control Loop Frequency</h3>
+      <p>
+        My control loop ran faster than the ToF sensor update rate because I avoided blocking code and computed the controller every loop iteration. 
+        The loop ran 100 times in 970.0 milliseconds, producing an update rate of 0.10309278350515463 updates per millisecond or about 103.09 updates per second (103.09 Hz)
+        As we can see the speed at which the control loop ran was significantly faster than the update rate of the ToF sensor (over 9 times faster). This shows the importance of using other 
+        methods such as extrapolation to provide the loop with distances even when it doesn't have a new reading available from the ToF sensor.
+      </p>
+
+      <p>
+        This is important because a fast controller can react more quickly to changing error, but the controller can only be as accurate as the sensor data it uses. This motivated the interpolation / extrapolation part of the lab.
+      </p>
+
+   
+    </section>
+
+    <section>
+      <h2>Position Control Results</h2>
+
+      <h3>Basic Wall Approach</h3>
+      <p>
+        The main task in this lab was to drive the robot toward a wall and stop at a target distance of 1 foot (304 mm). I tested the robot from different starting distances and tuned the controller to reduce overshoot while still allowing the robot to approach the wall quickly.
+      </p>
+
+      <div class="image-block">
+        <img src="images/lab5_pid_plot_1.png" alt="PID plot 1">
+        <div class="image-caption">Distance to wall and PWM command for one controller run.</div>
+      </div>
+
+      <p>
+        In the plot above, the robot begins at a larger distance from the wall and then moves toward the setpoint. The PWM signal is large at the beginning when the error is large, and then gradually decreases as the robot approaches the target. <strong>[Discuss overshoot, settling time, steady-state behavior, and whether the response was underdamped / overdamped / acceptable.]</strong>
+      </p>
+
+      
+    <section>
+      <h2>Maximum Speed</h2>
+      <p>
+        The lab asks for documentation of the maximum linear speed achieved by the robot. I estimated this speed using the change in measured distance over time:
+      </p>
+
+      <pre><code>
+velocity = (distance[i] - distance[i-1]) / (time[i] - time[i-1]);
+      </code></pre>
+
+      <p>
+        Based on my logged data, the maximum linear speed I achieved was approximately <strong>[value]</strong> mm/s.
+      </p>
+
+      <div class="image-block">
+        <img src="images/lab5_velocity_plot.png" alt="Velocity plot">
+        <div class="image-caption">Estimated linear speed over time.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Linear Interpolation / Extrapolation</h2>
+
+      <h3>Motivation</h3>
+      <p>
+        The ToF sensor updates more slowly than the control loop. Initially, I simply reused the last sensor value when no new measurement was available. This allowed the controller to run faster than the sensor, but it did not account for the robot continuing to move between sensor updates.
+      </p>
+
+      <h3>Implementation</h3>
+      <p>
+        To improve this, I used the last two valid ToF measurements to estimate the current distance using linear extrapolation. I computed the slope between the last two real sensor readings and then projected forward based on how much time had passed since the most recent reading.
+      </p>
+
+      <pre><code>
+float slope = (dist2 - dist1) / (time2 - time1);
+estimated_dist = last_real_dist + slope * time_since_last_real;
+      </code></pre>
+
+      <p>
+        This estimate was then used by the controller whenever no new ToF measurement was ready.
+      </p>
+
+      <div class="image-block">
+        <img src="images/lab5_extrapolation_plot.png" alt="Extrapolation plot">
+        <div class="image-caption">Raw ToF readings and extrapolated distance estimate plotted together.</div>
+      </div>
+
+      <h3>Results</h3>
+      <p>
+        Using extrapolation, the effective controller input could be updated at the control loop rate instead of only at the ToF update rate. This gave the controller a better estimate of the robot’s current position and improved performance when approaching the wall quickly.
+      </p>
+
+      <p>
+        Comparing the raw and estimated curves:
+      </p>
+    </section>
+
     
+      <h3>Reasonable Gain Range Discussion</h3>
+      <p>
+        The ToF sensor measures distance in millimeters, while the motor command is represented as PWM. Because of this, the proportional gain must convert a distance error into a motor command of reasonable size. If the gain is too small, the robot will respond too slowly or not move strongly enough to overcome static friction. If the gain is too large, the robot will overshoot the setpoint and may oscillate or hit the wall.
+        To find good numbers for kp and ki for my PI control, I experiemented with numerous different configurations and analized their graphs (plotting time vs distance and time vs pwm value). Higher values of kp and ki
+        allowed the robot to arrive at its destination quicker, however it tended to overshoot slightly and would oscilate more to find the correct position. On the other hand low values allowed the robot to smoothly arrive to its
+        desired setpoint, however it would do so in a longer amount of time. The numbers I use for future labs will depend on what I value more for that task. If I am fine with overshooting and want my robots to run at a faster speed then 
+        I will most likely choose higher values. On the other hand if the tasks require my robots movements to be very precise or if the setpoint is very close to an object and I want to ensure I don't collide with it, I will 
+        most likely go with the smaller values. *Note: the first two graphs were developed from me driving the car on my carpet in my apartement, the remaining were developed from me driving the car on the lab floors.
+      </p>
+
+      <div class="image-block">
+        <img src="images/pidg2.png">
+      </div>
+
+      <div class="image-block">
+        <img src="images/pidg3.png">
+      </div>
+
+      <div class="image-block">
+        <img src="images/pidg14.png">
+      </div>
+
+      <div class="image-block">
+        <img src="images/pidg4.png">
+      </div>
+
+      <!-- <div class="image-block">
+        <img src="images/pidg5.png">
+      </div> -->
+
+      <div class="image-block">
+        <img src="images/pidg6.png">
+      </div>
+      
+      <div class="image-block">
+        <img src="images/pidg7.png">
+      </div>
+
+      <div class="image-block">
+        <img src="images/pidg8.png">
+      </div>
+
+      <!-- <div class="image-block">
+        <img src="images/pidg9.png">
+      </div> -->
+
+      <div class="image-block">
+        <img src="images/pidg10.png">
+      </div>
+
+      <div class="image-block">
+        <img src="images/pidg12.png">
+      </div>
+
+      <div class="image-block">
+        <img src="images/pidg13.png">
+      </div>
+
+      
+
+      <ul>
+        <li><strong>Kp = 0.023</strong></li>
+        <li><strong>Ki = 0.0005</strong></li>
+      </ul>
+      <p>
+        With these values I was able to essentially eliminate overshooting the setpoint, however my car took longer to arrive at this point.
+      </p>
+    </section>
+
+    <section>
+      <h2>Code Snippets</h2>
+
+      <h3>Main Control Loop</h3>
+      <pre><code>
+// Insert a shortened version of your main PID loop here
+      </code></pre>
+
+      <h3>PI / P / PD / PID Function</h3>
+      <pre><code>
+// Insert your controller function here
+      </code></pre>
+
+      <h3>Extrapolation Function</h3>
+      <pre><code>
+// Insert your extrapolation logic here
+      </code></pre>
+
+      <p>
+        I did not include my entire code here, only the parts most relevant to the control logic, BLE debugging system, and extrapolation method.
+      </p>
+    </section>
+
+    <section>
+      <h2>Difficulties and Debugging</h2>
+      <p>
+        The biggest challenges in this lab were <strong>[list main issues: BLE logging, sign conventions, motor deadband, overshoot, array memory, extrapolation instability, etc.]</strong>.
+      </p>
+
+      <p>
+        Some of the main debugging steps I went through were:
+      </p>
+      <ul>
+        <li><strong>[example]</strong> verifying the sign of the error and PWM output</li>
+        <li><strong>[example]</strong> tuning deadband scaling so the motors actually responded to small commands</li>
+        <li><strong>[example]</strong> making sure the robot would stop if BLE disconnected</li>
+        <li><strong>[example]</strong> separating PID-loop timing from ToF timing</li>
+        <li><strong>[example]</strong> fixing extrapolation so it used the last two real sensor samples rather than previous extrapolated values</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Conclusion</h2>
+      <p>
+        In this lab I successfully implemented <strong>[P / PI / PD / PID]</strong> position control for my robot using ToF sensor feedback. The robot was able to approach a wall and stop near the target setpoint, and I evaluated controller behavior using logged data over BLE. I also implemented linear extrapolation so that the control loop could continue updating even when no new sensor reading was available.
+      </p>
+
+      <p>
+        Overall, I found that <strong>[summarize key lessons about controller tuning, overshoot, sensor lag, and practical implementation constraints]</strong>.
+      </p>
+    </section>
 
   </div>
 </body>
