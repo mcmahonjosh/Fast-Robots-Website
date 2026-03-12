@@ -389,7 +389,7 @@ if (pwm_val > 0) {
         //distance_sensor_2.stopRanging();
         }
 
-        if (dist == -1) { //extrapelation
+        if (dist == -1) { //extrapolation
           if (real_dist_val_counter < 2) {
             dist = 200;
             distance_sensor2_we[pid_counter] = dist;
@@ -489,7 +489,7 @@ if (pwm_val > 0) {
       </p>
 
       <p>
-        This is important because a fast controller can react more quickly to changing error, but the controller can only be as accurate as the sensor data it uses. This motivated the interpolation / extrapolation part of the lab.
+        This is important because a fast controller can react more quickly to changing error, but the controller can only be as accurate as the sensor data it uses.
       </p>
 
    
@@ -500,36 +500,58 @@ if (pwm_val > 0) {
 
       <h3>Basic Wall Approach</h3>
       <p>
-        The main task in this lab was to drive the robot toward a wall and stop at a target distance of 1 foot (304 mm). I tested the robot from different starting distances and tuned the controller to reduce overshoot while still allowing the robot to approach the wall quickly.
+        The main task in this lab was to drive the robot toward a wall and stop at a target distance of 1 foot (304 mm). I tested the robot from different starting distances and tuned the controller to reduce overshoot while still allowing the robot to approach the wall at a reasonable speed.
       </p>
 
+
       <div class="image-block">
-        <img src="images/lab5_pid_plot_1.png" alt="PID plot 1">
-        <div class="image-caption">Distance to wall and PWM command for one controller run.</div>
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/rwRwI8qJ5Sw"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
+      <div class="image-block">
+        <img src="images/pidgnoex.png">
+        
       </div>
 
       <p>
-        In the plot above, the robot begins at a larger distance from the wall and then moves toward the setpoint. The PWM signal is large at the beginning when the error is large, and then gradually decreases as the robot approaches the target. <strong>[Discuss overshoot, settling time, steady-state behavior, and whether the response was underdamped / overdamped / acceptable.]</strong>
+        In this run, the robot approaches the wall quickly from an initial distance of about 1000 mm. The control effort is largest at the beginning, which is consistent with the large initial position error, and then decreases as the robot gets closer to the setpoint. The response overshoots the target distance of 322 mm, reaching a minimum of about 240–250 mm before recovering. This suggests the controller is somewhat underdamped. After the overshoot, the robot settles smoothly with only minor oscillation, but it does not converge exactly to the target and instead remains around 270–280 mm, indicating a nonzero steady-state error. Overall, the response is reasonably stable and fast, but additional tuning would be needed to reduce overshoot and improve final accuracy.
+        Later when I implement extrapolation I fine tune these parameters in order to reach more desirable outcomes.
       </p>
 
+      <p>
+        If I push the robot towards or away from the wall, it returns back to the setpoint.
+      </p>
+
+      <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/ivsWt-bjd10"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
       
     <section>
       <h2>Maximum Speed</h2>
       <p>
-        The lab asks for documentation of the maximum linear speed achieved by the robot. I estimated this speed using the change in measured distance over time:
+        I then approximated the robot's maximum speed by taking the max slope in the distance vs time graph. This resulted in a max speed of 568.6274509803922 mm / s or
+        0.5686274509803921 m /s.
       </p>
 
       <pre><code>
-velocity = (distance[i] - distance[i-1]) / (time[i] - time[i-1]);
-      </code></pre>
-
-      <p>
-        Based on my logged data, the maximum linear speed I achieved was approximately <strong>[value]</strong> mm/s.
-      </p>
+    velocity = (distance[i] - distance[i-1]) / (time[i] - time[i-1]);
+  </code></pre>
 
       <div class="image-block">
-        <img src="images/lab5_velocity_plot.png" alt="Velocity plot">
-        <div class="image-caption">Estimated linear speed over time.</div>
+        <img src="images/lab5robospeed.png" alt="Velocity plot">
+      
       </div>
     </section>
 
@@ -555,11 +577,6 @@ estimated_dist = last_real_dist + slope * time_since_last_real;
         This estimate was then used by the controller whenever no new ToF measurement was ready.
       </p>
 
-      <div class="image-block">
-        <img src="images/lab5_extrapolation_plot.png" alt="Extrapolation plot">
-        <div class="image-caption">Raw ToF readings and extrapolated distance estimate plotted together.</div>
-      </div>
-
       <h3>Results</h3>
       <p>
         Using extrapolation, the effective controller input could be updated at the control loop rate instead of only at the ToF update rate. This gave the controller a better estimate of the robot’s current position and improved performance when approaching the wall quickly.
@@ -570,6 +587,14 @@ estimated_dist = last_real_dist + slope * time_since_last_real;
       </p>
     </section>
 
+    <div class="image-block">
+        <img src="images/lab5tvse.png" alt="Raw vs Estimated Data">
+      </div>
+
+      <p>
+        Here we can see that the extrapolation follows a very similar curve to that of the actual distance vs time data, indicating that its is a good predictor.
+      </p>
+
     
       <h3>Reasonable Gain Range Discussion</h3>
       <p>
@@ -578,8 +603,10 @@ estimated_dist = last_real_dist + slope * time_since_last_real;
         allowed the robot to arrive at its destination quicker, however it tended to overshoot slightly and would oscilate more to find the correct position. On the other hand low values allowed the robot to smoothly arrive to its
         desired setpoint, however it would do so in a longer amount of time. The numbers I use for future labs will depend on what I value more for that task. If I am fine with overshooting and want my robots to run at a faster speed then 
         I will most likely choose higher values. On the other hand if the tasks require my robots movements to be very precise or if the setpoint is very close to an object and I want to ensure I don't collide with it, I will 
-        most likely go with the smaller values. *Note: the first two graphs were developed from me driving the car on my carpet in my apartement, the remaining were developed from me driving the car on the lab floors.
+        most likely go with the smaller values. In these experiements I use variance starting distances, showing the robustness of my PI controller to arrive at the desired setpoint regardless of the initial distance.
+        *Note: the first two graphs were developed from me driving the car on my carpet in my apartement, the remaining were developed from me driving the car on the lab floors.
       </p>
+
 
       <div class="image-block">
         <img src="images/pidg2.png">
@@ -630,6 +657,34 @@ estimated_dist = last_real_dist + slope * time_since_last_real;
       </div>
 
       
+      <p>
+        After implementing extrapolation, I ensured that everything was still working properly.
+      </p>
+
+      <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/25m3IyO9n1Y"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
+
+      <p>
+        Later I switched to the lab to fine tune my variables which is where I did the majority of my experiments. Here in this video I have a very controlled approach to the 
+        set point. In the lab space I was also able to test different distances, ensuring the PI control still worked properly.
+      </p>
+
+      <div class="image-block">
+        <div class="video-container">
+          <iframe
+            src="https://www.youtube.com/embed/vzK-6ovnfRc"
+            frameborder="0"
+            allowfullscreen>
+          </iframe>
+        </div>
+      </div>
 
       <ul>
         <li><strong>Kp = 0.023</strong></li>
@@ -641,55 +696,22 @@ estimated_dist = last_real_dist + slope * time_since_last_real;
     </section>
 
     <section>
-      <h2>Code Snippets</h2>
-
-      <h3>Main Control Loop</h3>
-      <pre><code>
-// Insert a shortened version of your main PID loop here
-      </code></pre>
-
-      <h3>PI / P / PD / PID Function</h3>
-      <pre><code>
-// Insert your controller function here
-      </code></pre>
-
-      <h3>Extrapolation Function</h3>
-      <pre><code>
-// Insert your extrapolation logic here
-      </code></pre>
-
-      <p>
-        I did not include my entire code here, only the parts most relevant to the control logic, BLE debugging system, and extrapolation method.
-      </p>
-    </section>
-
-    <section>
       <h2>Difficulties and Debugging</h2>
       <p>
-        The biggest challenges in this lab were <strong>[list main issues: BLE logging, sign conventions, motor deadband, overshoot, array memory, extrapolation instability, etc.]</strong>.
+        The biggest challenge in this lab testing out different values for PI control. Since I needed to record data each time and plot it before I could 
+        compare my results, it was the most time consuming part of the lab. I also initially ran into problems with setting up extrapolation and how to retrieve the
+        most recent distance values.
       </p>
 
-      <p>
-        Some of the main debugging steps I went through were:
-      </p>
-      <ul>
-        <li><strong>[example]</strong> verifying the sign of the error and PWM output</li>
-        <li><strong>[example]</strong> tuning deadband scaling so the motors actually responded to small commands</li>
-        <li><strong>[example]</strong> making sure the robot would stop if BLE disconnected</li>
-        <li><strong>[example]</strong> separating PID-loop timing from ToF timing</li>
-        <li><strong>[example]</strong> fixing extrapolation so it used the last two real sensor samples rather than previous extrapolated values</li>
-      </ul>
     </section>
 
     <section>
       <h2>Conclusion</h2>
       <p>
-        In this lab I successfully implemented <strong>[P / PI / PD / PID]</strong> position control for my robot using ToF sensor feedback. The robot was able to approach a wall and stop near the target setpoint, and I evaluated controller behavior using logged data over BLE. I also implemented linear extrapolation so that the control loop could continue updating even when no new sensor reading was available.
+        In this lab I successfully implemented <strong>PI</strong> position control for my robot using ToF sensor feedback. The robot was able to approach a wall and stop near the target setpoint, and I evaluated controller behavior using logged data over BLE. 
+        I also implemented linear extrapolation so that the control loop could continue updating even when no new sensor reading was available.
       </p>
 
-      <p>
-        Overall, I found that <strong>[summarize key lessons about controller tuning, overshoot, sensor lag, and practical implementation constraints]</strong>.
-      </p>
     </section>
 
   </div>
