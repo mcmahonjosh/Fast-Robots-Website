@@ -439,7 +439,13 @@
         )
       </code></pre>
 
+      <h2>Sampling time and range</h2>
 
+      <p>For this lab, the controller used a sampled digital feedback loop, with the elapsed time dt computed from millis() at each iteration. This means the sampling time was not perfectly constant, since it depended on BLE communication, DMP/FIFO updates, and other work done in the loop, but it was still fast enough for stable orientation control. In terms of range, the yaw estimate was wrapped to a bounded angular interval and I used angle-wrapping helper functions so that errors near the ±180° boundary were handled correctly. The gyroscope’s configurable measurement range, up to ±2000 deg/s, was also more than sufficient for the robot’s turning speeds, so sensor range limits were not a practical issue in this experiment.</p>
+      
+
+      <h2>Testing</h2>
+      
       <p>
         I then tested this code and ran different values on the python side for the yaw position to change the cars orientation.
       </p>
