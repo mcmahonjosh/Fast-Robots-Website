@@ -473,10 +473,12 @@ int get_kf_distance_mm() {
 
   <h2>Sampling Time and Interpolation</h2>
 
+
+
   <p>
     The ToF sensor updated much more slowly than the control loop, so running the filter only when the sensor updated would not
     significantly improve the behavior of the robot. To make the Kalman Filter more useful, I ran the filter at the same 
-    speed as my PI loop, about 15 ms per iteration. At each loop iteration, the filter first predicted the next state using the
+    speed as my PI loop. At each loop iteration, the filter first predicted the next state using the
     system model and the previous control input. If a new ToF measurement was available, the filter then corrected the KF prediction
     using the measurement update step and then used the predicted value. If no measurement was available, the KF's predicted state was used directly.
   </p>
@@ -506,7 +508,11 @@ int get_kf_distance_mm() {
             allowfullscreen>
           </iframe>
         </div>
-      </div>
+  </div>
+
+  <div class="image-block">
+    <img src="images/kf_with_car.png">
+  </div>
 
   <p>
     Increasing the sensor/measurement noise caused the filter to trust the model more and produce a smoother estimate, while
