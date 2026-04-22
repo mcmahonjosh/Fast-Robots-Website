@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Lab 2 – IMU</title>
+  <title>Lab 10 – Grid Localization using Bayes Filter</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -152,32 +152,319 @@
     <a href="index.html" class="back-link">← Back to labs</a>
 
     <header>
-      <h1>Lab 3: Time of Flight Sensors</h1>
+      <h1>Lab 10: Grid Localization using Bayes Filter</h1>
       <p>ECE 4160 – Fast Robots</p>
     </header>
 
     <section>
       <h2>Objective</h2>
-      <p> The purpose of this lab was to set up the time of flight sensors. 
+      <p> The purpose of this lab was to implement grid localization using a Bayes filter. 
       </p>
+
+      <h2>Prelab</h2>
+      <p>
+        I first started with the prelab where I was able to setup the environment to run the simulation and download all the neccessary libraries.
+        I then ensured that I could run the simulation as well as the plotter and learned how to command the virtual robot to move around using python commands.
+      </p>
+      
+      <pre><code>
+        a = 1.2
+        b_speed = 5
+        b = (math.pi / 2) * b_speed  #think of b_speed as 1/x in my explanation above
+
+        while cmdr.sim_is_running() and cmdr.plotter_is_running():
+            if cmdr.get_sensor() < 0.25:
+                cmdr.set_vel(0, b)
+                await asyncio.sleep(1 / b_speed)
+            cmdr.set_vel(a, 0)
+
+      </code></pre>
+
+      <h2>Lab Procedure</h2>
+
+      <p>
+        The goal of the lab was to implement grid localization using a Bayes filter in the simulator. Since there are an infinite/continuous number
+        of possible robot positions, we discretize the environment into a grid (over x, y, and yaw) and then calculate the probability of the robot being in each cell of the grid.
+        In order to implement this, the lab had us implement functions that would be used to achomplish this task. This consisted of 
+        compute_control, odom_motion_model, prediction_step, sensor_model, and update_step.
+      </p>
+
+      <h3>compute_control</h3>
+      <p>
+          This function converts the change between the previous and current odometry poses into the three control terms used by the motion model: rotation 1, translation, and rotation 2. 
+          I computed the travel direction with <code>atan2</code>, used the distance formula for translation, normalized the angles, and added a small check for near-zero motion.
+      </p>
+      <pre><code>
+          def compute_control(cur_pose, prev_pose):
+            x_prev, y_prev, yaw_prev = prev_pose
+            x_cur, y_cur, yaw_cur = cur_pose
+
+            x_dis = x_cur - x_prev
+            y_dis = y_cur - y_prev
+
+            #angle = tan-1(y_dis/x_dis)
+            angle = np.degrees(np.arctan2(y_dis, x_dis))
+            distance = np.sqrt(x_dis**2 + y_dis**2)
+
+            if distance < 1e-9:
+                delta_rot_1 = 0.0
+                delta_trans = 0.0
+                delta_rot_2 = normalize_angle(yaw_cur - yaw_prev)
+            else:
+                delta_rot_1 = normalize_angle(angle - yaw_prev)
+                delta_trans = distance
+                delta_rot_2 = normalize_angle(yaw_cur - angle)
+      </code></pre>
+
+      <h3>odom_motion_model</h3>
+
+      <p>
+        This function computes how likely a transition from one pose to another is given the odometry control input. 
+        I compared the expected motion between the two poses to the measured odometry motion and used Gaussian likelihoods on the two rotation errors and translation error.
+      </p>
+      <pre><code>
+
+        def odom_motion_model(cur_pose, prev_pose, u):
+
+          exp_rot1, exp_trans, exp_rot2 = compute_control(cur_pose, prev_pose)
+          odom_rot1, odom_trans, odom_rot2 = u
+
+          err_rot1 = normalize_angle(exp_rot1 - odom_rot1)
+          err_trans = exp_trans - odom_trans
+          err_rot2 = normalize_angle(exp_rot2 - odom_rot2)
+          
+          prob_rot1 = loc.gaussian(err_rot1, 0, loc.odom_rot_sigma)
+          prob_trans = loc.gaussian(err_trans, 0, loc.odom_trans_sigma)
+          prob_rot2 = loc.gaussian(err_rot2, 0, loc.odom_rot_sigma)
+
+          prob = prob_rot1 * prob_trans * prob_rot2
+
+          return prob
+        
+      </code></pre>
+
+      <h3>prediction_step</h3>
+
+      <p>
+          This function updates the prior belief <code>bel_bar</code> by applying the motion model to the previous belief grid <code>bel</code>. 
+          I summed over likely previous states for each possible current state and skipped very small belief values to reduce computation time before normalizing the result.
+      </p>
+      <pre><code>
+        def prediction_step(cur_odom, prev_odom):
+   
+          u = compute_control(cur_odom, prev_odom)
+
+          loc.bel_bar = np.zeros((mapper.MAX_CELLS_X, mapper.MAX_CELLS_Y, mapper.MAX_CELLS_A))
+          active_prev = np.argwhere(loc.bel > 1e-4)
+
+          for cx_t in range(mapper.MAX_CELLS_X):
+              for cy_t in range(mapper.MAX_CELLS_Y):
+                  for ca_t in range(mapper.MAX_CELLS_A):
+                      cur_pose = np.array(mapper.from_map(cx_t, cy_t, ca_t))
+
+                      total_prob = 0.0
+
+                      for cx_prev, cy_prev, ca_prev in active_prev:
+                          prev_pose = np.array(mapper.from_map(cx_prev, cy_prev, ca_prev))
+
+                          motion_prob = odom_motion_model(cur_pose, prev_pose, u)
+                          prev_bel = loc.bel[cx_prev, cy_prev, ca_prev]
+
+                          total_prob += motion_prob * prev_bel
+
+                      loc.bel_bar[cx_t, cy_t, ca_t] = total_prob
+
+          total = np.sum(loc.bel_bar)
+          if total > 0:
+              loc.bel_bar /= total
+      </code></pre>
+
+      <h3>sensor_model</h3>
+
+      <p>
+        This function computes the likelihood of the robot’s measured sensor data for a given pose. 
+        I compared the 18 expected measurements for that pose to the 18 actual measurements and passed the errors into the Gaussian sensor model.
+      </p>
+      <pre><code>
+        def sensor_model(obs):
+
+          obs = np.array(obs).flatten()
+          measured = np.array(loc.obs_range_data).flatten()
+
+          errors = measured - obs
+          prob_array = loc.gaussian(errors, 0, loc.sensor_sigma)
+
+          return prob_array
+        
+      </code></pre>
+
+      <h3>update_step</h3>
+
+      <p>
+          This function performs the Bayes filter update by combining the prior belief <code>bel_bar</code> with the sensor likelihoods to produce the posterior belief <code>bel</code>. 
+          For each grid cell, I computed the overall observation likelihood from the 18 measurements, multiplied it by the prior, and normalized the final belief grid.
+      </p>
+      <pre><code>
+
+        def update_step():
+
+          loc.bel = np.zeros((mapper.MAX_CELLS_X, mapper.MAX_CELLS_Y, mapper.MAX_CELLS_A))
+          measured = np.array(loc.obs_range_data).flatten()
+
+          for cx in range(mapper.MAX_CELLS_X):
+              for cy in range(mapper.MAX_CELLS_Y):
+                  for ca in range(mapper.MAX_CELLS_A):
+                      obs = np.array(mapper.get_views(cx, cy, ca)).flatten()
+                      errors = measured - obs  # added
+                      prob_array = loc.gaussian(errors, 0, loc.sensor_sigma)
+
+                      sensor_prob = np.prod(prob_array)
+
+                      loc.bel[cx, cy, ca] = loc.bel_bar[cx, cy, ca] * sensor_prob
+
+          total = np.sum(loc.bel)
+          if total > 0:
+              loc.bel /= total
+        
+      </code></pre>
+
+      <p> 
+          Together, these functions implement the Bayes filter by predicting the robot’s motion from odometry and then correcting that prediction with sensor data.
+      </p>
+
+      <h2>Speed</h2>
+
+      <p>
+        When I first ran the code I didn't optimize for speed and it took over a minute to do each prediction/update step. After using the
+        suggestions in the lab to skip some of the calculations (when the probability was less than 0.0001) as well as using numpy arrays,
+        I was able to reduce the runtime to less than a second per prediction/update step.
+      </p>
+
+
+      <h2>Results and Discussion</h2>
+
+        <div class="image-block">
+          <div class="video-container">
+            <iframe
+              src="https://www.youtube.com/embed/jotsHXdccA8"
+              frameborder="0"
+              allowfullscreen>
+            </iframe>
+          </div>
+        </div>
+
+        <p>
+          Here are a few examples of data that was printed on the beliefs of the robots state for two separate runs.
+        </p>
+
+        <h3>Example Results from Run 1</h3>
+        <table>
+          <tr>
+            <th>Iteration</th>
+            <th>GT Index</th>
+            <th>Predicted MAP State</th>
+            <th>Prediction Prob.</th>
+            <th>Updated MAP State</th>
+            <th>Update Prob.</th>
+          </tr>
+          <tr>
+            <td>0</td>
+            <td>(6, 3, 7)</td>
+            <td>(7, 6, 8)</td>
+            <td>0.0611928</td>
+            <td>(6, 4, 6)</td>
+            <td>1.0</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>(8, 0, 9)</td>
+            <td>(6, 2, 6)</td>
+            <td>0.1558057</td>
+            <td>(6, 1, 8)</td>
+            <td>0.9999999</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>(11, 3, 13)</td>
+            <td>(11, 3, 12)</td>
+            <td>0.1963222</td>
+            <td>(11, 3, 13)</td>
+            <td>1.0</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td>(3, 2, 0)</td>
+            <td>(2, 4, 16)</td>
+            <td>0.0808278</td>
+            <td>(3, 3, 0)</td>
+            <td>0.9999999</td>
+          </tr>
+        </table>
+
+        <h3>Example Results from Run 2</h3>
+        <table>
+          <tr>
+            <th>Iteration</th>
+            <th>GT Index</th>
+            <th>Predicted MAP State</th>
+            <th>Prediction Prob.</th>
+            <th>Updated MAP State</th>
+            <th>Update Prob.</th>
+          </tr>
+          <tr>
+            <td>0</td>
+            <td>(6, 3, 7)</td>
+            <td>(5, 1, 6)</td>
+            <td>0.1175512</td>
+            <td>(6, 4, 6)</td>
+            <td>0.9999999</td>
+          </tr>
+          <tr>
+            <td>4</td>
+            <td>(8, 0, 8)</td>
+            <td>(7, 0, 6)</td>
+            <td>0.3395240</td>
+            <td>(8, 1, 9)</td>
+            <td>1.0</td>
+          </tr>
+          <tr>
+            <td>7</td>
+            <td>(11, 3, 13)</td>
+            <td>(11, 5, 16)</td>
+            <td>0.1462803</td>
+            <td>(11, 3, 13)</td>
+            <td>1.0</td>
+          </tr>
+          <tr>
+            <td>15</td>
+            <td>(3, 3, 0)</td>
+            <td>(0, 4, 16)</td>
+            <td>0.0778486</td>
+            <td>(3, 3, 0)</td>
+            <td>0.9997758</td>
+          </tr>
+        </table>
+
+
+        <p>
+          After each motion, I recorded the most probable state after both the prediction and update steps and compared it to the ground truth pose. In both runs, the prediction step often spread the belief away from the correct state because odometry alone accumulated noticeable error. For example, in one run at iteration 4, the predicted most probable state was (6, 2, 6) with probability 0.1558 while the ground truth index was (8, 0, 9), showing that the prior could drift significantly before incorporating sensor data.
+        </p>
+
+        <p>
+          The update step usually corrected this drift well. In that same run, after incorporating the 18 range measurements, the most probable state became (6, 1, 8) with probability 0.9999999, much closer to the ground truth pose (0.814, -1.069, 1801.334). In the second run, the correction was also clear: at iteration 3, the belief after update was (7, 1, 4) with probability 1.0 while the ground truth index was (7, 0, 4), which is only one grid cell away in y.
+        </p>
+
+        <p>
+          Overall, the Bayes filter worked best when the robot was in locations with distinctive sensor views, because the update step could sharply distinguish the correct cell from nearby alternatives. It worked less well during prediction-only portions of the loop or when several nearby cells had similar observations, since the belief could temporarily spread or concentrate on a neighboring cell.
+        </p>
 
     </section>
     
 
-    <div class="image-block">
-    <img src="images/kf_with_car.png">
-  </div>
+    
 
 
-  <div class="image-block">
-        <div class="video-container">
-          <iframe
-            src="https://www.youtube.com/embed/4VE5DRNl8pM"
-            frameborder="0"
-            allowfullscreen>
-          </iframe>
-        </div>
-  </div>
+  
 
   </div>
 </body>
