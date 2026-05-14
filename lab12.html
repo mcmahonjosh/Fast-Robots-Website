@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Lab 2 – IMU</title>
+  <title>Lab 12 – Inverted Pendulum</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <style>
@@ -152,32 +152,430 @@
     <a href="index.html" class="back-link">← Back to labs</a>
 
     <header>
-      <h1>Lab 3: Time of Flight Sensors</h1>
+      <h1>Lab 12: Inverted Pendulum</h1>
       <p>ECE 4160 – Fast Robots</p>
     </header>
 
     <section>
       <h2>Objective</h2>
-      <p> The purpose of this lab was to set up the time of flight sensors. 
+      <p>
+        The goal of this lab was to make the robot balance on two wheels like an inverted pendulum.
+        This required using the IMU to estimate the robot's pitch angle, then using closed loop control
+        to drive the wheels underneath the robot's center of mass. Unlike some of the previous labs, this
+        lab was very open ended, so a large part of the challenge was deciding which sensor measurements,
+        control structure, and tuning strategy would work best for my specific robot.
+      </p>
+    </section>
+
+    <section>
+      <h2>Initial Approach</h2>
+
+      <p>
+        My first approach was to reuse the IMU orientation code I had already developed in previous labs.
+        I initially tried using a complementary filter with accelerometer and gyroscope data to estimate
+        pitch. The idea was to compare the current pitch to a target pitch and then use a PD controller
+        to drive the wheels forward or backward depending on the direction the robot was falling.
       </p>
 
+      <p>
+        I also added BLE commands to make tuning easier. Instead of uploading new Arduino code every time
+        I wanted to test a different controller, I could send new proportional, derivative, and integral
+        gains over BLE. I also added a BLE command to set the minimum and maximum PWM values used by the
+        inverted pendulum controller. This was important because the motors had a minimum PWM value before
+        the wheels would actually move.
+      </p>
+
+      <code><pre>
+case SET_INVERTED_PENDULUM_GAINS: {
+  success = robot_cmd.get_next_value(inverted_pendulum_kp);
+  if (!success) return;
+
+  success = robot_cmd.get_next_value(inverted_pendulum_kd);
+  if (!success) return;
+
+  success = robot_cmd.get_next_value(inverted_pendulum_ki);
+  if (!success) return;
+
+  inverted_pendulum_integral = 0.0f;
+
+  tx_estring_value.clear();
+  tx_estring_value.append("Inverted gains set.");
+  tx_characteristic_string.writeValue(tx_estring_value.c_str());
+  break;
+}
+
+case SET_INVERTED_PENDULUM_PWM: {
+  success = robot_cmd.get_next_value(inverted_pendulum_min_pwm);
+  if (!success) return;
+
+  success = robot_cmd.get_next_value(inverted_pendulum_max_pwm);
+  if (!success) return;
+
+  inverted_pendulum_min_pwm = constrain(inverted_pendulum_min_pwm, 0, 255);
+  inverted_pendulum_max_pwm = constrain(inverted_pendulum_max_pwm, 0, 255);
+
+  tx_estring_value.clear();
+  tx_estring_value.append("Inverted PWM set");
+  tx_characteristic_string.writeValue(tx_estring_value.c_str());
+  break;
+}
+      </pre></code>
+
+      <p>
+        This made the testing process much faster because I could run commands such as:
+      </p>
+
+      <code><pre>
+ble.send_command(CMD.SET_INVERTED_PENDULUM_GAINS, "6|6|0.0")
+ble.send_command(CMD.SET_INVERTED_PENDULUM_PWM, "35|80")
+      </pre></code>
     </section>
-    
 
-    <div class="image-block">
-    <img src="images/kf_with_car.png">
-  </div>
+    <section>
+      <h2>Motor Command Mapping</h2>
 
+      <p>
+        One problem I found early on was that small PWM values often did not move the wheels at all.
+        However, simply clamping every small command to the minimum PWM also caused the robot to twitch
+        because small control commands immediately became fairly large motor commands. To improve this,
+        I mapped the controller output to a motor command by adding the minimum PWM value and scaling
+        the magnitude of the command.
+      </p>
 
-  <div class="image-block">
-        <div class="video-container">
-          <iframe
-            src="https://www.youtube.com/embed/4VE5DRNl8pM"
-            frameborder="0"
-            allowfullscreen>
-          </iframe>
-        </div>
-  </div>
+      <code><pre>
+void set_inverted_pendulum_drive_pwm(int pwm) {
+  pwm = constrain(pwm, -inverted_pendulum_max_pwm, inverted_pendulum_max_pwm);
+
+  int mag = abs(pwm);
+  int updated_pwm = 0;
+
+  if (mag < MICRO_DEADZONE) {
+    updated_pwm = 0;
+  } else {
+    updated_pwm = inverted_pendulum_min_pwm + (int)(0.25f * mag);
+    updated_pwm = constrain(updated_pwm,
+                            inverted_pendulum_min_pwm,
+                            inverted_pendulum_max_pwm);
+  }
+
+  if (updated_pwm == 0) {
+    analogWrite(motorL1, 0);
+    analogWrite(motorL2, 0);
+    analogWrite(motorR1, 0);
+    analogWrite(motorR2, 0);
+    return;
+  }
+
+  int right_pwm = constrain((int)(updated_pwm * 1.35f), 0, 255);
+
+  if (pwm < 0) {
+    analogWrite(motorL1, updated_pwm);
+    analogWrite(motorL2, 0);
+    analogWrite(motorR1, 0);
+    analogWrite(motorR2, right_pwm);
+  } else {
+    analogWrite(motorL1, 0);
+    analogWrite(motorL2, updated_pwm);
+    analogWrite(motorR1, right_pwm);
+    analogWrite(motorR2, 0);
+  }
+}
+      </pre></code>
+
+      <p>
+        I tuned the scale factor in this mapping because the raw controller output was often too aggressive.
+        Lowering the multiplier reduced how quickly the command saturated at the maximum PWM. This helped
+        because I found that high gains made the robot respond quickly, but they also caused the PWM to hit
+        the maximum value too often.
+      </p>
+    </section>
+
+    <section>
+      <h2>Sensor and Mechanical Challenges</h2>
+
+      <p>
+        A major challenge was that the robot's behavior was extremely sensitive to the IMU mounting. At one
+        point, the IMU was slightly crooked and was still attached to a cable that could move around. This
+        caused the measured angle to shift while the robot was running. After securing the IMU more rigidly
+        and placing it in the correct orientation, the pitch readings became much more consistent.
+      </p>
+
+      <p>
+        I also noticed that when I held the robot in the air with the motor battery connected, the pitch
+        estimate sometimes appeared to jump by a large amount. When I unplugged the motor battery and ran
+        the same test, the pitch estimate was much more stable. This showed that motor vibration was shaking
+        the robot and affecting the IMU gyroscope readings.
+      </p>
+
+      <div class="image-block">
+        <img src="images/lab12_imu_mount.jpg">
+        <div class="image-caption">Fig. 1. IMU mounting position used for the inverted pendulum controller.</div>
+      </div>
+
+      <!-- <p>
+        Another issue was motor asymmetry. One side of the robot moved faster than the other in one direction.
+        This made the robot harder to tune because even if the controller output was correct, the physical
+        response of the robot was not perfectly symmetric.
+      </p> -->
+    </section>
+
+    <section>
+      <h2>DMP Pitch Estimation</h2>
+
+      <p>
+        After comparing my approach with other successful inverted pendulum implementations, I decided to use
+        DMP data for the pitch estimate. The DMP provides an orientation estimate from the IMU, which is useful
+        because the inverted pendulum controller needs a reliable estimate of the robot's angle relative to the
+        upright position.
+      </p>
+
+      <p>
+        A large part of the debugging process was figuring out the correct axis and sign for the DMP pitch. At
+        first, I tried using generic roll and pitch equations, but the selected angle did not behave correctly.
+        In some tests, the angle would increase in magnitude no matter which direction the robot tilted. This
+        meant the controller could not distinguish between falling forward and falling backward, so it would not
+        reliably drive the wheels in the correct direction.
+      </p>
+
+      <p>
+        The solution was to remap the quaternion axes before computing the pitch. The DMP quaternion values did
+        not correspond directly to the physical pitch axis I wanted for my robot's IMU mounting. The remapping
+        below made the pitch value change smoothly in opposite directions when the robot tilted forward and
+        backward.
+      </p>
+
+      <code><pre>
+bool read_dmp_balance_pitch(float &balance_pitch_deg) {
+  icm_20948_DMP_data_t data;
+  bool got_quat = false;
+
+  do {
+    myICM.readDMPdataFromFIFO(&data);
+
+    if ((myICM.status != ICM_20948_Stat_Ok) &&
+        (myICM.status != ICM_20948_Stat_FIFOMoreDataAvail)) {
+      return false;
+    }
+
+    if ((data.header & DMP_header_bitmap_Quat6) > 0) {
+      double q1 = ((double)data.Quat6.Data.Q1) / 1073741824.0;
+      double q2 = ((double)data.Quat6.Data.Q2) / 1073741824.0;
+      double q3 = ((double)data.Quat6.Data.Q3) / 1073741824.0;
+
+      double q0_sq = 1.0 - ((q1 * q1) + (q2 * q2) + (q3 * q3));
+      if (q0_sq < 0.0) q0_sq = 0.0;
+      double q0 = sqrt(q0_sq);
+
+      double qw = q0;
+      double qx = q2;
+      double qy = q1;
+      double qz = -q3;
+
+      double t2 = 2.0 * (qw * qy - qx * qz);
+      if (t2 > 1.0) t2 = 1.0;
+      if (t2 < -1.0) t2 = -1.0;
+
+      float rawPitch = asin(t2) * 180.0f / M_PI;
+
+      balance_pitch_deg = rawPitch;
+      got_quat = true;
+    }
+
+  } while (myICM.status == ICM_20948_Stat_FIFOMoreDataAvail);
+
+  return got_quat;
+}
+      </pre></code>
+
+      <p>
+        To verify that the axis was correct, I printed the selected pitch value while manually rotating the robot.
+        The correct behavior was that tilting the robot one way moved the pitch above the target, while tilting it
+        the other way moved the pitch below the target. Once this was true, the sign of the motor response could
+        be tuned separately.
+      </p>
+    </section>
+
+    <section>
+      <h2>Control Loop</h2>
+
+      <p>
+        The main balancing controller used proportional and derivative control. The proportional term reacted to
+        how far the robot was from the target pitch, while the derivative term reacted to how quickly the robot was
+        rotating. I kept the integral term at zero because integral windup is risky for this system. If the robot
+        falls too far, the integral term can build up and make the motors drive too aggressively when the robot is
+        placed back near the upright position.
+      </p>
+
+      <code><pre>
+void inverted_pendulum_step() {
+  if (!update_inverted_pendulum_pitch()) {
+    return;
+  }
+
+  unsigned long now_us = micros();
+
+  if (last_inverted_pendulum_us == 0) {
+    last_inverted_pendulum_us = now_us;
+    return;
+  }
+
+  float dt = (now_us - last_inverted_pendulum_us) / 1000000.0f;
+  last_inverted_pendulum_us = now_us;
+
+  if (dt <= 0.0f || dt > 0.05f) {
+    return;
+  }
+
+  float error = inverted_pendulum_target_pitch - pitch_cf;
+
+  inverted_pendulum_integral += error * dt;
+  inverted_pendulum_integral = constrain(inverted_pendulum_integral, -50.0f, 50.0f);
+
+  float control_signal = inverted_pendulum_kp * error
+                       - inverted_pendulum_kd * pitch_gyro
+                       + inverted_pendulum_ki * inverted_pendulum_integral;
+
+  int pwm_val = constrain((int)control_signal,
+                          -inverted_pendulum_max_pwm,
+                          inverted_pendulum_max_pwm);
+
+  set_inverted_pendulum_drive_pwm(pwm_val);
+}
+      </pre></code>
+
+      <p>
+        I also added debug prints for pitch, error, rate, PWM, and the approximate balance loop frequency. These
+        prints helped diagnose whether the problem was the sensor estimate, the controller sign, the motor direction,
+        or the loop speed.
+      </p>
+    </section>
+
+    <section>
+      <h2>Pause and Resume Behavior</h2>
+
+      <p>
+        Originally, the robot would stop completely if the pitch error became too large. This was useful for safety,
+        but it made testing annoying because I had to restart the controller every time the robot fell out of range.
+        I changed the behavior so that when the robot left the allowed angle range, the controller paused instead of
+        fully shutting off. Then, when I manually placed the robot close to the target angle again, the controller
+        resumed.
+      </p>
+
+      <p>
+        This made tuning much easier because I could quickly test different gains and motor directions without
+        restarting the BLE command sequence every time the robot tipped too far.
+      </p>
+
+      <code><pre>
+if (abs(error) > INVERTED_PENDULUM_FALL_ANGLE_DEG) {
+  set_inverted_pendulum_drive_pwm(0);
+  inverted_pendulum_paused = true;
+
+  SERIAL_PORT.print("Paused. Error: ");
+  SERIAL_PORT.println(error);
+  return;
+}
+
+if (inverted_pendulum_paused) {
+  set_inverted_pendulum_drive_pwm(0);
+
+  if (abs(error) < INVERTED_PENDULUM_RESUME_ANGLE_DEG) {
+    inverted_pendulum_paused = false;
+    inverted_pendulum_integral = 0.0f;
+    last_inverted_pendulum_us = micros();
+    SERIAL_PORT.println("Resuming inverted pendulum");
+  }
+
+  return;
+}
+      </pre></code>
+    </section>
+
+    <section>
+      <h2>BLE and Loop Speed</h2>
+
+      <p>
+        Another issue I encountered was that BLE communication could slow down or disconnect during testing. Since
+        inverted pendulum control is very time sensitive, I reduced unnecessary BLE activity while the robot was
+        balancing. For example, I avoided sending periodic BLE float notifications during the balancing loop and
+        only kept the most important debug output.
+      </p>
+
+      <p>
+        I also avoided adding delays inside the balancing path. In earlier tests, I found that waiting for new sensor
+        data could effectively slow the controller down and make the robot react too late. For this stunt, even small
+        delays matter because the robot can fall several degrees in a short amount of time.
+      </p>
+
+      <code><pre>
+while (central.connected()) {
+  BLE.poll();
+  read_data();
+
+  if (!running_inverted_pendulum) {
+    write_data();
+  }
+
+  if (car_is_on && running_inverted_pendulum) {
+    inverted_pendulum_step();
+  }
+}
+      </pre></code>
+    </section>
+
+    <section>
+      <h2>Results</h2>
+
+      <p>
+        After tuning the IMU mounting, DMP pitch calculation, motor direction, PWM mapping, and controller gains,
+        the robot was able to respond to forward and backward tipping and attempt to keep itself balanced on two
+        wheels. The final system was still sensitive to the exact starting angle, battery level, motor asymmetry,
+        and vibration, but it behaved much more consistently than the early versions.
+      </p>
+
+      <div class="image-block">
+        <video controls>
+          <source src="videos/lab12_balance_test.mp4" type="video/mp4">
+        </video>
+        <div class="image-caption">Video 1. Inverted pendulum balancing test.</div>
+      </div>
+
+      <p>
+        During testing, I found that high proportional and derivative gains made the robot respond quickly, but also
+        caused the PWM to saturate. Lower gains avoided saturation, but the robot reacted too slowly. The best results
+        came from using relatively aggressive gains while limiting the PWM range and reducing the motor command scaling.
+      </p>
+
+      <div class="image-block">
+        <img src="images/lab12_debug_log.png">
+        <div class="image-caption">Fig. 2. Example debug output showing pitch, error, rate, PWM, and loop frequency.</div>
+      </div>
+
+      <p>
+        I also tested the robot while holding it in the air. With the motor battery unplugged, the pitch estimate was
+        stable and stayed within a small range. With the motors powered, the readings became noisier because of vibration.
+        This confirmed that the controller was not only limited by software, but also by the physical construction of the
+        robot.
+      </p>
+    </section>
+
+    <section>
+      <h2>Conclusion</h2>
+
+      <p>
+        This lab showed that inverted pendulum control is very sensitive to both software and hardware details. At first,
+        I treated the problem mostly as a PID tuning problem, but I eventually found that the bigger issues were sensor
+        orientation, DMP axis mapping, motor deadband, motor asymmetry, loop speed, and vibration. Once these were improved,
+        the controller became much more predictable.
+      </p>
+
+      <p>
+        The most important improvement was switching to a DMP-based pitch estimate and remapping the quaternion axes so
+        that the measured pitch changed correctly around the balancing point. Adding BLE commands for gains and PWM limits
+        also made tuning much faster. Although the final performance was still not perfectly stable, the robot was able to
+        use closed loop control to react to tipping and maintain the inverted pendulum position for short periods.
+      </p>
+    </section>
 
   </div>
 </body>
